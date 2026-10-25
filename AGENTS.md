@@ -100,7 +100,38 @@ python3 scripts/sync_sessions.py --all
 
 ---
 
-## 4. Agent Operational Instructions
+## 4. Parallel Sessions & Git Worktrees
+
+To run multiple Antigravity sessions in parallel without branch contention or working directory conflicts, use Git worktrees. Worktrees are isolated under `.worktrees/<session-id>/` and ignored by Git across all repositories.
+
+### 4.1 Worktree Management Script
+Use `scripts/worktree.py` to create, inspect, and remove parallel session workspaces:
+
+```bash
+# List all active worktrees across root and sub-repos:
+python3 scripts/worktree.py list
+
+# Create an isolated worktree for a session (across all repos):
+python3 scripts/worktree.py create <session-id-or-feature>
+
+# Create a worktree for a specific plugin only:
+python3 scripts/worktree.py create <session-id-or-feature> --repo gp-coding-plugin
+
+# Remove a worktree session after completion (and optionally delete branches):
+python3 scripts/worktree.py remove <session-id-or-feature> -D
+
+# Prune stale worktree metadata:
+python3 scripts/worktree.py prune
+```
+
+### 4.2 Parallel Session Protocol
+1. Each parallel Antigravity session can operate in `.worktrees/<session-id>/...` or on its dedicated session branch (`session/<session-id>-<repo>`).
+2. Vault session logs remain keyed by the unique `<session-id>` in `obsidian-vault/sessions/<session-id>.md`, preventing collision even when multiple agents write logs simultaneously.
+3. Once a parallel session concludes, changes can be merged back to `master` and the worktree cleanly removed.
+
+---
+
+## 5. Agent Operational Instructions
 
 When an Antigravity agent operates in this workspace:
 1. **Identify the Scope**:

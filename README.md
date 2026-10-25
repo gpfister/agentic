@@ -26,6 +26,21 @@ python3 scripts/sync_sessions.py --latest
 python3 scripts/sync_sessions.py --all
 ```
 
-### 2. Development Guidelines
+### 2. Parallel Sessions via Git Worktrees
+
+Run multiple concurrent Antigravity sessions or agent tasks in isolated worktrees:
+
+```bash
+# List active worktrees across repos
+python3 scripts/worktree.py list
+
+# Spin up a parallel worktree workspace
+python3 scripts/worktree.py create feature-x
+
+# Remove worktrees and delete branches once merged
+python3 scripts/worktree.py remove feature-x -D
+```
+
+### 3. Development Guidelines
 
 See [AGENTS.md](file:///Users/gpfister/Development/Projects/gpfister/agentic/AGENTS.md) for full workspace conventions, plugin authoring standards, and session tracking protocols.

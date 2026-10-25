@@ -19,3 +19,7 @@ venv/
 
 # Session brain temporary scratch files if any
 scratch/
+
+# Git worktrees for parallel sessions
+.worktrees/
+worktrees/
