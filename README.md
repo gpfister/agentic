@@ -1,0 +1,31 @@
+# Agentic Workspace
+
+Workspace coordinator for developing and maintaining **Google Antigravity** plugins, alongside a centralized **Obsidian Vault** for documentation, architecture decision records (ADRs), and detailed agent session tracking.
+
+## Repositories & Sub-projects
+
+| Project | Type | Description |
+| :--- | :--- | :--- |
+| **`gp-coding-plugin/`** | Antigravity Plugin | Starter coding assistant plugin featuring custom skills, rules, and MCP configurations. |
+| **`obsidian-vault/`** | Obsidian Vault | Documentation hub containing session transcripts, architecture guidelines, and plugin docs. |
+
+## Quick Start
+
+### 1. Synchronize Antigravity Sessions into Obsidian
+
+Extract sessions from `~/.gemini/antigravity-cli/brain/<session_id>` with full reasoning, tools invoked, tasks, and artifacts into Obsidian markdown notes:
+
+```bash
+# Sync specific session
+python3 scripts/sync_sessions.py <session_id>
+
+# Sync the most recent session
+python3 scripts/sync_sessions.py --latest
+
+# Sync all sessions
+python3 scripts/sync_sessions.py --all
+```
+
+### 2. Development Guidelines
+
+See [AGENTS.md](file:///Users/gpfister/Development/Projects/gpfister/agentic/AGENTS.md) for full workspace conventions, plugin authoring standards, and session tracking protocols.
