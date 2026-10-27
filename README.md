@@ -7,6 +7,7 @@ Workspace coordinator for developing and maintaining **Google Antigravity** plug
 | Project | Type | Description |
 | :--- | :--- | :--- |
 | **`agentic-coding-plugin/`** | Antigravity Plugin | Starter coding assistant plugin featuring custom skills, rules, and MCP configurations. |
+| **`agentic-investigate-plugin/`** | Antigravity Plugin | Autonomous multi-repository issue investigation and root cause diagnosis plugin. |
 | **`agentic-monitoring-plugin/`** | Antigravity Plugin | Telemetry and stream surveillance plugin with anomaly detection and interactive pause gates. |
 | **`agentic-obsidian/`** | Obsidian Vault | Documentation hub containing session transcripts, architecture guidelines, and plugin docs. |
 

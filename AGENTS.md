@@ -22,6 +22,12 @@ agentic/
 │   ├── hooks/                # Lifecycle hooks
 │   ├── mcp_config.json       # Plugin-provided MCP servers
 │   └── README.md
+├── agentic-investigate-plugin/# Git Sub-repo: Multi-repo root cause diagnosis plugin
+│   ├── plugin.json           # Plugin manifest
+│   ├── rules/AGENTS.md       # Plugin-scoped investigation rules
+│   ├── skills/               # Investigation runbooks (@investigate)
+│   ├── agents/               # Investigation subagent definition
+│   └── README.md
 ├── agentic-monitoring-plugin/# Git Sub-repo: Antigravity telemetry & stream surveillance plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped monitoring rules

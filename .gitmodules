@@ -9,3 +9,7 @@
 [submodule "agentic-monitoring-plugin"]
 	path = agentic-monitoring-plugin
 	url = git@github.com:gpfister/agentic-monitoring-plugin.git
+
+[submodule "agentic-investigate-plugin"]
+	path = agentic-investigate-plugin
+	url = git@github.com:gpfister/agentic-investigate-plugin.git
