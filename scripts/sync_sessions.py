@@ -20,11 +20,14 @@ def find_default_brain_dir() -> Path:
     env_brain = os.environ.get("ANTIGRAVITY_BRAIN_DIR")
     if env_brain:
         return Path(env_brain).expanduser().resolve()
-    app_brain = (Path.home() / ".gemini" / "antigravity" / "brain").resolve()
-    cli_brain = (Path.home() / ".gemini" / "antigravity-cli" / "brain").resolve()
-    if app_brain.exists():
-        return app_brain
-    return cli_brain
+    candidates = [
+        (Path.home() / ".gemini" / "antigravity-cli" / "brain").resolve(),
+        (Path.home() / ".gemini" / "antigravity" / "brain").resolve(),
+    ]
+    existing = [p for p in candidates if p.exists()]
+    if not existing:
+        return candidates[0]
+    return max(existing, key=lambda p: p.stat().st_mtime)
 
 
 def clean_user_input(text: str) -> str:
