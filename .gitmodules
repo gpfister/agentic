@@ -5,3 +5,7 @@
 [submodule "agentic-obsidian"]
 	path = agentic-obsidian
 	url = git@github.com:gpfister/agentic-obsidian.git
+
+[submodule "agentic-monitoring-plugin"]
+	path = agentic-monitoring-plugin
+	url = git@github.com:gpfister/agentic-monitoring-plugin.git

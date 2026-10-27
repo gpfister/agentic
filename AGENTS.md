@@ -15,12 +15,18 @@ agentic/
 ├── .gitignore                # Global workspace gitignore
 ├── scripts/                  # Workspace management and sync automation
 │   └── sync_sessions.py      # Session transcript -> Obsidian vault exporter
-├── agentic-coding-plugin/    # Git Sub-repo: First Antigravity plugin
+├── agentic-coding-plugin/    # Git Sub-repo: Antigravity coding companion plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped agent rules & guidelines
 │   ├── skills/               # Reusable progressive-disclosure skills
 │   ├── hooks/                # Lifecycle hooks
 │   ├── mcp_config.json       # Plugin-provided MCP servers
+│   └── README.md
+├── agentic-monitoring-plugin/# Git Sub-repo: Antigravity telemetry & stream surveillance plugin
+│   ├── plugin.json           # Plugin manifest
+│   ├── rules/AGENTS.md       # Plugin-scoped monitoring rules
+│   ├── skills/               # Monitoring runbooks (@monitoring)
+│   ├── agents/               # Monitoring subagent definition
 │   └── README.md
 └── agentic-obsidian/         # Git Sub-repo: Centralized Obsidian documentation vault
     ├── .obsidian/            # Obsidian workspace configuration
