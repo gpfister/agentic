@@ -6,8 +6,8 @@ Workspace coordinator for developing and maintaining **Google Antigravity** plug
 
 | Project | Type | Description |
 | :--- | :--- | :--- |
-| **`gp-coding-plugin/`** | Antigravity Plugin | Starter coding assistant plugin featuring custom skills, rules, and MCP configurations. |
-| **`obsidian-vault/`** | Obsidian Vault | Documentation hub containing session transcripts, architecture guidelines, and plugin docs. |
+| **`agentic-coding-plugin/`** | Antigravity Plugin | Starter coding assistant plugin featuring custom skills, rules, and MCP configurations. |
+| **`agentic-obsidian/`** | Obsidian Vault | Documentation hub containing session transcripts, architecture guidelines, and plugin docs. |
 
 ## Quick Start
 

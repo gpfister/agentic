@@ -15,14 +15,14 @@ agentic/
 ├── .gitignore                # Global workspace gitignore
 ├── scripts/                  # Workspace management and sync automation
 │   └── sync_sessions.py      # Session transcript -> Obsidian vault exporter
-├── gp-coding-plugin/         # Git Sub-repo: First Antigravity plugin
+├── agentic-coding-plugin/    # Git Sub-repo: First Antigravity plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped agent rules & guidelines
 │   ├── skills/               # Reusable progressive-disclosure skills
 │   ├── hooks/                # Lifecycle hooks
 │   ├── mcp_config.json       # Plugin-provided MCP servers
 │   └── README.md
-└── obsidian-vault/           # Git Sub-repo: Centralized Obsidian documentation vault
+└── agentic-obsidian/         # Git Sub-repo: Centralized Obsidian documentation vault
     ├── .obsidian/            # Obsidian workspace configuration
     ├── sessions/             # Formatted records of Antigravity agent sessions
     │   └── attachments/      # Artifacts and attachments linked to sessions
@@ -53,10 +53,10 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 
 ## 3. Obsidian Vault & Session Tracking Protocol
 
-The `obsidian-vault/` repository serves as the knowledge base for documentation, architectural decisions, and agent interaction telemetry.
+The `agentic-obsidian/` repository serves as the knowledge base for documentation, architectural decisions, and agent interaction telemetry.
 
 ### 3.1 Session Tracking
-Antigravity stores session data in `~/.gemini/antigravity-cli/brain/<conversation-id>/`. Every significant session should be recorded into `obsidian-vault/sessions/<conversation-id>.md`.
+Antigravity stores session data in `~/.gemini/antigravity-cli/brain/<conversation-id>/`. Every significant session should be recorded into `agentic-obsidian/sessions/<conversation-id>.md`.
 
 Each session note must include:
 1. **YAML Frontmatter**:
@@ -115,7 +115,7 @@ python3 scripts/worktree.py list
 python3 scripts/worktree.py create <session-id-or-feature>
 
 # Create a worktree for a specific plugin only:
-python3 scripts/worktree.py create <session-id-or-feature> --repo gp-coding-plugin
+python3 scripts/worktree.py create <session-id-or-feature> --repo agentic-coding-plugin
 
 # Remove a worktree session after completion (and optionally delete branches):
 python3 scripts/worktree.py remove <session-id-or-feature> -D
@@ -126,7 +126,7 @@ python3 scripts/worktree.py prune
 
 ### 4.2 Parallel Session Protocol
 1. Each parallel Antigravity session can operate in `.worktrees/<session-id>/...` or on its dedicated session branch (`session/<session-id>-<repo>`).
-2. Vault session logs remain keyed by the unique `<session-id>` in `obsidian-vault/sessions/<session-id>.md`, preventing collision even when multiple agents write logs simultaneously.
+2. Vault session logs remain keyed by the unique `<session-id>` in `agentic-obsidian/sessions/<session-id>.md`, preventing collision even when multiple agents write logs simultaneously.
 3. Once a parallel session concludes, changes can be merged back to `master` and the worktree cleanly removed.
 
 ---
@@ -135,12 +135,12 @@ python3 scripts/worktree.py prune
 
 When an Antigravity agent operates in this workspace:
 1. **Identify the Scope**:
-   - If working on a specific plugin (e.g. `gp-coding-plugin/`), follow that plugin's internal `rules/AGENTS.md` and keep commits isolated to that plugin's git repository.
+   - If working on a specific plugin (e.g. `agentic-coding-plugin/`), follow that plugin's internal `rules/AGENTS.md` and keep commits isolated to that plugin's git repository.
    - If working across plugins or global setup, follow this root `AGENTS.md`.
 2. **Update Documentation**:
-   - When introducing or altering a plugin, update `obsidian-vault/plugins/<plugin-name>.md`.
-   - When recording architectural decisions or standards, write to `obsidian-vault/architecture/`.
+   - When introducing or altering a plugin, update `agentic-obsidian/plugins/<plugin-name>.md`.
+   - When recording architectural decisions or standards, write to `agentic-obsidian/architecture/`.
 3. **Session Record Keeping**:
-   - At the conclusion of major tasks or upon user request, trigger `scripts/sync_sessions.py` to archive the current conversation state into `obsidian-vault/sessions/`.
+   - At the conclusion of major tasks or upon user request, trigger `scripts/sync_sessions.py` to archive the current conversation state into `agentic-obsidian/sessions/`.
 4. **Code Quality & Links**:
    - Always create clickable markdown links using `file://` scheme when referencing files and code symbols.

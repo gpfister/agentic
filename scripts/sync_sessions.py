@@ -20,7 +20,11 @@ def find_default_brain_dir() -> Path:
     env_brain = os.environ.get("ANTIGRAVITY_BRAIN_DIR")
     if env_brain:
         return Path(env_brain).expanduser().resolve()
-    return (Path.home() / ".gemini" / "antigravity-cli" / "brain").resolve()
+    app_brain = (Path.home() / ".gemini" / "antigravity" / "brain").resolve()
+    cli_brain = (Path.home() / ".gemini" / "antigravity-cli" / "brain").resolve()
+    if app_brain.exists():
+        return app_brain
+    return cli_brain
 
 
 def clean_user_input(text: str) -> str:
@@ -282,7 +286,7 @@ def main():
     parser.add_argument("--latest", action="store_true", help="Sync the most recently active session")
     parser.add_argument("--all", action="store_true", help="Sync all sessions in the brain folder")
     parser.add_argument("--brain-dir", help="Path to Antigravity brain directory")
-    parser.add_argument("--vault-dir", default="./obsidian-vault", help="Path to Obsidian vault")
+    parser.add_argument("--vault-dir", default="./agentic-obsidian", help="Path to Obsidian vault")
 
     args = parser.parse_args()
 

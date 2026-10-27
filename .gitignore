@@ -23,3 +23,7 @@ scratch/
 # Git worktrees for parallel sessions
 .worktrees/
 worktrees/
+
+# Logs
+log/
+*.log

@@ -1,0 +1,7 @@
+[submodule "agentic-coding-plugin"]
+	path = agentic-coding-plugin
+	url = git@github.com:gpfister/agentic-coding-plugin.git
+
+[submodule "agentic-obsidian"]
+	path = agentic-obsidian
+	url = git@github.com:gpfister/agentic-obsidian.git
