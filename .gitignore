@@ -27,3 +27,11 @@ worktrees/
 # Logs
 log/
 *.log
+
+# Sub-repositories
+/agentic-coding-plugin/
+/agentic-investigate-plugin/
+/agentic-monitoring-plugin/
+/agentic-obsidian/
+/agentic-triage-plugin/
+

@@ -14,7 +14,25 @@ Workspace coordinator for developing and maintaining **Google Antigravity** plug
 
 ## Quick Start
 
-### 1. Synchronize Antigravity Sessions into Obsidian
+### 1. Synchronize Multi-Repository Workspace
+
+The workspace uses independent Git repositories for each plugin and the Obsidian vault, ignored by the root repository and synchronized via `Makefile`:
+
+```bash
+# Check repository status across all projects
+make status
+
+# Pull all sub-repositories and clone any missing ones
+make sync
+
+# Push commits across all repositories
+make push
+
+# Clone sub-repositories only
+make clone
+```
+
+### 2. Synchronize Antigravity Sessions into Obsidian
 
 Extract sessions from `~/.gemini/antigravity-cli/brain/<session_id>` with full reasoning, tools invoked, tasks, and artifacts into Obsidian markdown notes:
 
@@ -29,13 +47,14 @@ python3 scripts/sync_sessions.py --latest
 python3 scripts/sync_sessions.py --all
 ```
 
-### 2. Parallel Sessions via Git Worktrees
+### 3. Parallel Sessions via Git Worktrees
 
 Run multiple concurrent Antigravity sessions or agent tasks in isolated worktrees:
 
 ```bash
 # List active worktrees across repos
-python3 scripts/worktree.py list
+make worktrees
+# or: python3 scripts/worktree.py list
 
 # Spin up a parallel worktree workspace
 python3 scripts/worktree.py create feature-x
@@ -44,6 +63,6 @@ python3 scripts/worktree.py create feature-x
 python3 scripts/worktree.py remove feature-x -D
 ```
 
-### 3. Development Guidelines
+### 4. Development Guidelines
 
 See [AGENTS.md](file:///Users/gpfister/Development/Projects/gpfister/agentic/AGENTS.md) for full workspace conventions, plugin authoring standards, and session tracking protocols.

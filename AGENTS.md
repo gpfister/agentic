@@ -12,9 +12,11 @@ This workspace uses a multi-repo model. The root `agentic` repository orchestrat
 agentic/
 ├── AGENTS.md                 # This coordination guide & agent instructions
 ├── README.md                 # Human-facing workspace overview
-├── .gitignore                # Global workspace gitignore
+├── Makefile                  # Multi-repo synchronization & workspace management
+├── .gitignore                # Global workspace gitignore (ignores sub-repos)
 ├── scripts/                  # Workspace management and sync automation
-│   └── sync_sessions.py      # Session transcript -> Obsidian vault exporter
+│   ├── sync_sessions.py      # Session transcript -> Obsidian vault exporter
+│   └── worktree.py           # Parallel session worktree manager
 ├── agentic-coding-plugin/    # Git Sub-repo: Antigravity coding companion plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped agent rules & guidelines
@@ -64,12 +66,31 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 - **MCP Servers (`mcp_config.json`)**: Outlines MCP servers launched with the plugin, specifying command, args, and environment variables.
 
 ### 2.2 Isolation & Independence
-- Each plugin lives in its own Git repository so it can be versioned, tagged, and distributed independently or installed via `agy plugin install`.
+- Each plugin and the Obsidian vault live in their own standalone Git repository, ignored by the root workspace `.gitignore`.
+- Synchronization, bulk pulling, and cloning across repositories are managed via `Makefile` (`make sync`, `make pull`, `make push`, `make status`).
+- Plugins can be versioned, tagged, and distributed independently or installed via `agy plugin install`.
 - Avoid hardcoded machine-local paths; use relative paths within plugin bundles.
 
 ---
 
-## 3. Obsidian Vault & Session Tracking Protocol
+## 3. Multi-Repository Management (Makefile)
+
+The root repository coordinates all sub-repositories via [`Makefile`](file:///Users/gpfister/Development/Projects/gpfister/agentic/Makefile):
+
+| Target | Description |
+| :--- | :--- |
+| `make sync` | Clones any missing repositories, pulls latest updates (fast-forward) across all repos, and prints status overview. |
+| `make clone` | Clones missing sub-repositories (`agentic-*-plugin`, `agentic-obsidian`). Supports `GITHUB_ORG` and `GIT_PROTOCOL` (ssh/https). |
+| `make pull` | Fast-forwards all sub-repositories and the root repository. |
+| `make push` | Pushes current branch commits to origin across all repositories. |
+| `make status` (or `make st`) | Displays clean/dirty indicators, current branches, and ahead/behind counts for all repositories. |
+| `make diff` | Displays uncommitted changes across all repositories. |
+| `make worktrees` | Lists active Git worktrees. |
+| `make sessions` | Synchronizes the latest Antigravity session into the Obsidian vault. |
+
+---
+
+## 4. Obsidian Vault & Session Tracking Protocol
 
 The `agentic-obsidian/` repository serves as the knowledge base for documentation, architectural decisions, and agent interaction telemetry.
 
@@ -118,7 +139,7 @@ python3 scripts/sync_sessions.py --all
 
 ---
 
-## 4. Parallel Sessions & Git Worktrees
+## 5. Parallel Sessions & Git Worktrees
 
 To run multiple Antigravity sessions in parallel without branch contention or working directory conflicts, use Git worktrees. Worktrees are isolated under `.worktrees/<session-id>/` and ignored by Git across all repositories.
 
@@ -149,7 +170,7 @@ python3 scripts/worktree.py prune
 
 ---
 
-## 5. Agent Operational Instructions
+## 6. Agent Operational Instructions
 
 When an Antigravity agent operates in this workspace:
 1. **Identify the Scope**:
