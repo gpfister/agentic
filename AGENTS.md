@@ -34,6 +34,12 @@ agentic/
 │   ├── skills/               # Monitoring runbooks (@monitoring)
 │   ├── agents/               # Monitoring subagent definition
 │   └── README.md
+├── agentic-triage-plugin/    # Git Sub-repo: Dynamic prompt triage & intent classifier plugin
+│   ├── plugin.json           # Plugin manifest
+│   ├── rules/AGENTS.md       # Plugin-scoped triage rules
+│   ├── hooks/                # PreInvocation dynamic triage hook
+│   ├── hooks.json            # Lifecycle hook registration
+│   └── README.md
 └── agentic-obsidian/         # Git Sub-repo: Centralized Obsidian documentation vault
     ├── .obsidian/            # Obsidian workspace configuration
     ├── sessions/             # Formatted records of Antigravity agent sessions

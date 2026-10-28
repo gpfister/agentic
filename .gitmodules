@@ -13,3 +13,7 @@
 [submodule "agentic-investigate-plugin"]
 	path = agentic-investigate-plugin
 	url = git@github.com:gpfister/agentic-investigate-plugin.git
+
+[submodule "agentic-triage-plugin"]
+	path = agentic-triage-plugin
+	url = git@github.com:gpfister/agentic-triage-plugin.git
