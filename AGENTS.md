@@ -27,13 +27,13 @@ agentic/
 ├── agentic-investigate-plugin/# Git Sub-repo: Multi-repo root cause diagnosis plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped investigation rules
-│   ├── skills/               # Investigation runbooks (@investigate)
+│   ├── skills/               # Investigation runbooks (@coding-investigate)
 │   ├── agents/               # Investigation subagent definition
 │   └── README.md
 ├── agentic-monitoring-plugin/# Git Sub-repo: Antigravity telemetry & stream surveillance plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped monitoring rules
-│   ├── skills/               # Monitoring runbooks (@monitoring)
+│   ├── skills/               # Monitoring runbooks (@coding-monitor)
 │   ├── agents/               # Monitoring subagent definition
 │   └── README.md
 ├── agentic-obsidian-plugin/  # Git Sub-repo: Antigravity Obsidian documentation companion plugin
@@ -45,7 +45,7 @@ agentic/
 ├── agentic-research-plugin/  # Git Sub-repo: Autonomous deep web & literature research plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped research standards
-│   ├── skills/               # Research runbooks (@research)
+│   ├── skills/               # Research runbooks (@coding-research)
 │   ├── agents/               # Research subagent definition
 │   └── README.md
 ├── agentic-triage-plugin/    # Git Sub-repo: Dynamic prompt triage & intent classifier plugin
