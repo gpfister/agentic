@@ -84,13 +84,89 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 - Avoid hardcoded machine-local paths; use relative paths within plugin bundles.
 
 ### 2.3 Plugin Ecosystem Catalog
-The workspace currently hosts the following specialized plugins:
-- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 6-stage delivery workflows (clarify, specify, plan, develop, review, merge) and clean code reviews.
-- **`agentic-investigate-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@investigate`) with evidence-based verification and interactive approval gates.
-- **`agentic-monitoring-plugin`**: Telemetry and stream surveillance subagent (`@monitoring`) with real-time log, Docker container, and serial stream monitoring, automatic anomaly detection, and interactive pause gates.
+The workspace currently hosts the following specialized plugins (all subagent handles start with `@coding`):
+- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 6-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-review`, `@coding-merge`) with clean code reviews and after-each-phase documentation maintenance via `@coding-document`.
+- **`agentic-investigate-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@coding-investigate`) with evidence-based verification, interactive approval gates, resolution handoff to `@coding`, and archival via `@coding-document`.
+- **`agentic-monitoring-plugin`**: Telemetry and stream surveillance subagent (`@coding-monitor`) with real-time log, Docker container, and serial stream monitoring, automatic anomaly detection, pause gates with `@coding-investigate` invocation, and session archival via `@coding-document`.
 - **`agentic-obsidian-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
-- **`agentic-research-plugin`**: Autonomous multi-query deep web and literature research subagent (`@research`), featuring iterative query expansion, multi-source evidence extraction and cross-verification, structured citation tracking, and interactive research report artifacts.
-- **`agentic-triage-plugin`**: High-performance prompt intent classifier and router using the Laya Router System 1 model to dynamically triage user requests into appropriate workflows.
+- **`agentic-research-plugin`**: Autonomous multi-query deep web and literature research subagent (`@coding-research`), featuring iterative query expansion, multi-source evidence extraction and cross-verification, structured citation tracking, interactive research report artifacts, and topic curation via `@coding-document`.
+- **`agentic-triage-plugin`**: High-performance prompt intent classifier and router using the Laya Router System 1 model to dynamically triage user requests across installed agentic plugins, omitting uninstalled plugin responses from evaluation.
+
+---
+
+## 3. Cross-Plugin Awareness & Interoperability
+
+The agentic workspace is designed modularly: users may install only a subset of plugins. Every plugin must gracefully detect companion plugins and adapt its workflow dynamically:
+
+| Originating Plugin | Target Condition | Action / Decision Taken | Graceful Fallback if Not Installed |
+| :--- | :--- | :--- | :--- |
+| **`agentic-coding-plugin`** | `agentic-document-plugin` (or `agentic-obsidian-plugin`) installed | Invoke `@coding-document` after **each phase** (Clarify, Specify, Plan, Develop, Review, Merge) to maintain specs, ADRs, test notes, and git status. | Skip documentation step and proceed directly to subsequent development phase. |
+| **`agentic-monitoring-plugin`** | `agentic-investigate-plugin` installed | For each issue/anomaly discovered, ask user via `ask_question` if they want to invoke `@coding-investigate` to investigate root cause. | Present standard pause gate options (inspect code manually, restart, ignore, abort) without offering `@coding-investigate`. |
+| **`agentic-monitoring-plugin`** | `agentic-document-plugin` (or `agentic-obsidian-plugin`) installed | At the end of monitoring, invoke `@coding-document` to record monitoring session telemetry and alerts in `agentic-obsidian/monitoring/`. | Output monitoring telemetry summary directly in chat. |
+| **`agentic-investigate-plugin`** | `agentic-coding-plugin` installed | Once `issue-assessment.md` is approved, ask user via `ask_question` if they want to invoke `@coding` to implement the resolution. | Present manual implementation guidance, explaining `@coding` is not available. |
+| **`agentic-investigate-plugin`** | `agentic-document-plugin` (or `agentic-obsidian-plugin`) installed | Once issue investigation is done, invoke `@coding-document` to archive `issue-assessment.md` in `agentic-obsidian/investigations/`. | Retain local session artifact `issue-assessment.md`. |
+| **`agentic-research-plugin`** | `agentic-document-plugin` (or `agentic-obsidian-plugin`) installed | Once `research-report.md` is approved, invoke `@coding-document` to record research in `agentic-obsidian/research/`, creating a new topic or updating an existing one. | Present research findings directly in chat. |
+| **`agentic-triage-plugin`** | Plugin-specific evaluation | Only evaluate and include response choices for installed plugins (`agentic-coding-plugin` -> coding changes; `agentic-monitoring-plugin` -> monitoring; `agentic-investigate-plugin` -> investigations; `agentic-research-plugin` -> research; `agentic-obsidian-plugin` -> documentation). | Omit response candidate completely from triage options and Laya evaluation. |
+
+---
+
+## 4. Coding Workflow Pipeline & Decision Flowchart
+
+The software development lifecycle coordinates specialized `@coding-*` subagents across 6 distinct phases with strict approval gates and idle guards:
+
+```mermaid
+flowchart TD
+    Start(["User Request / Task"]) --> Phase1["Phase 1: Clarification<br/>(@coding-clarify)"]
+    
+    Phase1 --> AmbiguityCheck{"Ambiguities or<br/>Open Questions?"}
+    AmbiguityCheck -->|"Yes"| GrillUser["Interrogate User via ask_question<br/>(One question at a time)"]
+    GrillUser --> AmbiguityCheck
+    AmbiguityCheck -->|"No / Clarified"| DocAfterPhase1{"agentic-document-plugin<br/>(or agentic-obsidian-plugin)<br/>installed?"}
+    DocAfterPhase1 -->|"Yes"| InvokeDoc1["Invoke @coding-document<br/>(Document requirements & clarification notes)"]
+    DocAfterPhase1 -->|"No"| Phase2["Phase 2: Specification<br/>(@coding-specify)"]
+    InvokeDoc1 --> Phase2
+    
+    Phase2 --> SpecArtifact["Write specification.md<br/>(RequestFeedback=True, sole tool call)"]
+    SpecArtifact --> IdleGuardSpec["Enter IDLE State<br/>(Wait for User Gate Decision)"]
+    IdleGuardSpec --> UserSpecGate{"User Decision on<br/>specification.md?"}
+    UserSpecGate -->|"[GATE_REJECTED]"| Phase1
+    UserSpecGate -->|"[GATE_APPROVED]"| DocAfterPhase2{"agentic-document-plugin<br/>installed?"}
+    DocAfterPhase2 -->|"Yes"| InvokeDoc2["Invoke @coding-document<br/>(Document & index feature specifications)"]
+    DocAfterPhase2 -->|"No"| Phase3["Phase 3: Planning<br/>(@coding-plan)"]
+    InvokeDoc2 --> Phase3
+    
+    Phase3 --> PlanArtifact["Write plan.md<br/>(RequestFeedback=True, sole tool call)"]
+    PlanArtifact --> IdleGuardPlan["Enter IDLE State<br/>(Wait for User Gate Decision)"]
+    IdleGuardPlan --> UserPlanGate{"User Decision on<br/>plan.md?"}
+    UserPlanGate -->|"[GATE_REJECTED]"| Phase1
+    UserPlanGate -->|"[GATE_APPROVED]"| DocAfterPhase3{"agentic-document-plugin<br/>installed?"}
+    DocAfterPhase3 -->|"Yes"| InvokeDoc3["Invoke @coding-document<br/>(Document architecture plan & ADRs)"]
+    DocAfterPhase3 -->|"No"| Phase4["Phase 4: Development<br/>(@coding-develop)"]
+    InvokeDoc3 --> Phase4
+    
+    Phase4 --> ParallelDev["Fan out parallel workers<br/>per repo on isolated branches"]
+    ParallelDev --> DevWork["Implement code, tests, linting<br/>Return DevelopReport"]
+    DevWork --> DocAfterPhase4{"agentic-document-plugin<br/>installed?"}
+    DocAfterPhase4 -->|"Yes"| InvokeDoc4["Invoke @coding-document<br/>(Document code changes & implementation notes)"]
+    DocAfterPhase4 -->|"No"| Phase5["Phase 5: Review<br/>(@coding-review)"]
+    InvokeDoc4 --> Phase5
+    
+    Phase5 --> AuditChanges["Audit deliverables against spec<br/>Run verification test suites"]
+    AuditChanges --> ReviewCheck{"Quality Audit<br/>Passed?"}
+    ReviewCheck -->|"Defects Found"| Phase3
+    ReviewCheck -->|"Passed"| ConfirmMergeGate{"Confirm Merge with User<br/>(ask_question)"}
+    ConfirmMergeGate -->|"User Denied"| AbortWorkflow(["Abort / Terminate"])
+    ConfirmMergeGate -->|"User Confirmed"| DocAfterPhase5{"agentic-document-plugin<br/>installed?"}
+    DocAfterPhase5 -->|"Yes"| InvokeDoc5["Invoke @coding-document<br/>(Pre-merge tidy-up: update READMEs & architecture docs)"]
+    DocAfterPhase5 -->|"No"| Phase6["Phase 6: Merge & Release<br/>(@coding-merge)"]
+    InvokeDoc5 --> Phase6
+    
+    Phase6 --> ExecMerge["Execute git merge or open GitHub PR"]
+    ExecMerge --> DocAfterPhase6{"agentic-document-plugin<br/>installed?"}
+    DocAfterPhase6 -->|"Yes"| InvokeDoc6["Invoke @coding-document<br/>(Post-merge: update git status, branch tracking & changelogs)"]
+    DocAfterPhase6 -->|"No"| Complete(["Workflow Completed"])
+    InvokeDoc6 --> Complete
+```
 
 ---
 
