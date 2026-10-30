@@ -36,6 +36,12 @@ agentic/
 │   ├── skills/               # Monitoring runbooks (@monitoring)
 │   ├── agents/               # Monitoring subagent definition
 │   └── README.md
+├── agentic-obsidian-plugin/  # Git Sub-repo: Antigravity Obsidian documentation companion plugin
+│   ├── plugin.json           # Plugin manifest
+│   ├── rules/AGENTS.md       # Plugin-scoped documentation rules
+│   ├── skills/               # Vault documentation runbooks (@coding-document)
+│   ├── agents/               # Documentation subagent definition
+│   └── README.md
 ├── agentic-research-plugin/  # Git Sub-repo: Autonomous deep web & literature research plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped research standards
@@ -82,6 +88,7 @@ The workspace currently hosts the following specialized plugins:
 - **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 6-stage delivery workflows (clarify, specify, plan, develop, review, merge) and clean code reviews.
 - **`agentic-investigate-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@investigate`) with evidence-based verification and interactive approval gates.
 - **`agentic-monitoring-plugin`**: Telemetry and stream surveillance subagent (`@monitoring`) with real-time log, Docker container, and serial stream monitoring, automatic anomaly detection, and interactive pause gates.
+- **`agentic-obsidian-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
 - **`agentic-research-plugin`**: Autonomous multi-query deep web and literature research subagent (`@research`), featuring iterative query expansion, multi-source evidence extraction and cross-verification, structured citation tracking, and interactive research report artifacts.
 - **`agentic-triage-plugin`**: High-performance prompt intent classifier and router using the Laya Router System 1 model to dynamically triage user requests into appropriate workflows.
 
