@@ -30,10 +30,10 @@ log/
 
 # Sub-repositories
 /agentic-coding-plugin/
+/agentic-document-plugin/
 /agentic-investigate-plugin/
-/agentic-monitoring-plugin/
+/agentic-monitor-plugin/
 /agentic-obsidian/
-/agentic-obsidian-plugin/
 /agentic-research-plugin/
 /agentic-triage-plugin/
 

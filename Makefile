@@ -16,7 +16,7 @@ GIT_BASE_URL := https://github.com/$(GITHUB_ORG)
 endif
 
 # Sub-repositories
-REPOS := agentic-coding-plugin agentic-investigate-plugin agentic-monitoring-plugin agentic-obsidian agentic-obsidian-plugin agentic-research-plugin agentic-triage-plugin
+REPOS := agentic-coding-plugin agentic-document-plugin agentic-investigate-plugin agentic-monitor-plugin agentic-obsidian agentic-research-plugin agentic-triage-plugin
 
 .PHONY: all help sync clone pull fetch push status st diff worktrees sessions sessions-all clean
 

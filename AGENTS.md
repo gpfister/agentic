@@ -24,23 +24,23 @@ agentic/
 │   ├── hooks/                # Lifecycle hooks
 │   ├── mcp_config.json       # Plugin-provided MCP servers
 │   └── README.md
+├── agentic-document-plugin/  # Git Sub-repo: Antigravity documentation companion plugin
+│   ├── plugin.json           # Plugin manifest
+│   ├── rules/AGENTS.md       # Plugin-scoped documentation rules
+│   ├── skills/               # Vault documentation runbooks (@coding-document)
+│   ├── agents/               # Documentation subagent definition
+│   └── README.md
 ├── agentic-investigate-plugin/# Git Sub-repo: Multi-repo root cause diagnosis plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped investigation rules
 │   ├── skills/               # Investigation runbooks (@coding-investigate)
 │   ├── agents/               # Investigation subagent definition
 │   └── README.md
-├── agentic-monitoring-plugin/# Git Sub-repo: Antigravity telemetry & stream surveillance plugin
+├── agentic-monitor-plugin/   # Git Sub-repo: Antigravity telemetry & stream surveillance plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped monitoring rules
 │   ├── skills/               # Monitoring runbooks (@coding-monitor)
 │   ├── agents/               # Monitoring subagent definition
-│   └── README.md
-├── agentic-obsidian-plugin/  # Git Sub-repo: Antigravity Obsidian documentation companion plugin
-│   ├── plugin.json           # Plugin manifest
-│   ├── rules/AGENTS.md       # Plugin-scoped documentation rules
-│   ├── skills/               # Vault documentation runbooks (@coding-document)
-│   ├── agents/               # Documentation subagent definition
 │   └── README.md
 ├── agentic-research-plugin/  # Git Sub-repo: Autonomous deep web & literature research plugin
 │   ├── plugin.json           # Plugin manifest
@@ -86,9 +86,9 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 ### 2.3 Plugin Ecosystem Catalog
 The workspace currently hosts the following specialized plugins (all subagent handles start with `@coding`):
 - **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 6-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-review`, `@coding-merge`) with clean code reviews and after-each-phase documentation maintenance via `@coding-document`.
+- **`agentic-document-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
 - **`agentic-investigate-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@coding-investigate`) with evidence-based verification, interactive approval gates, resolution handoff to `@coding`, and archival via `@coding-document`.
-- **`agentic-monitoring-plugin`**: Telemetry and stream surveillance subagent (`@coding-monitor`) with real-time log, Docker container, and serial stream monitoring, automatic anomaly detection, pause gates with `@coding-investigate` invocation, and session archival via `@coding-document`.
-- **`agentic-obsidian-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
+- **`agentic-monitor-plugin`**: Telemetry and stream surveillance subagent (`@coding-monitor`) with real-time log, Docker container, and serial stream monitoring, automatic anomaly detection, pause gates with `@coding-investigate` invocation, and session archival via `@coding-document`.
 - **`agentic-research-plugin`**: Autonomous multi-query deep web and literature research subagent (`@coding-research`), featuring iterative query expansion, multi-source evidence extraction and cross-verification, structured citation tracking, interactive research report artifacts, and topic curation via `@coding-document`.
 - **`agentic-triage-plugin`**: High-performance prompt intent classifier and router using the Laya Router System 1 model to dynamically triage user requests across installed agentic plugins, omitting uninstalled plugin responses from evaluation.
 
@@ -100,13 +100,13 @@ The agentic workspace is designed modularly: users may install only a subset of 
 
 | Originating Plugin | Target Condition | Action / Decision Taken | Graceful Fallback if Not Installed |
 | :--- | :--- | :--- | :--- |
-| **`agentic-coding-plugin`** | `agentic-document-plugin` (or `agentic-obsidian-plugin`) installed | Invoke `@coding-document` after **each phase** (Clarify, Specify, Plan, Develop, Review, Merge) to maintain specs, ADRs, test notes, and git status. | Skip documentation step and proceed directly to subsequent development phase. |
-| **`agentic-monitoring-plugin`** | `agentic-investigate-plugin` installed | For each issue/anomaly discovered, ask user via `ask_question` if they want to invoke `@coding-investigate` to investigate root cause. | Present standard pause gate options (inspect code manually, restart, ignore, abort) without offering `@coding-investigate`. |
-| **`agentic-monitoring-plugin`** | `agentic-document-plugin` (or `agentic-obsidian-plugin`) installed | At the end of monitoring, invoke `@coding-document` to record monitoring session telemetry and alerts in `agentic-obsidian/monitoring/`. | Output monitoring telemetry summary directly in chat. |
+| **`agentic-coding-plugin`** | `agentic-document-plugin` installed | Invoke `@coding-document` after **each phase** (Clarify, Specify, Plan, Develop, Review, Merge) to maintain specs, ADRs, test notes, and git status. | Skip documentation step and proceed directly to subsequent development phase. |
+| **`agentic-monitor-plugin`** | `agentic-investigate-plugin` installed | For each issue/anomaly discovered, ask user via `ask_question` if they want to invoke `@coding-investigate` to investigate root cause. | Present standard pause gate options (inspect code manually, restart, ignore, abort) without offering `@coding-investigate`. |
+| **`agentic-monitor-plugin`** | `agentic-document-plugin` installed | At the end of monitoring, invoke `@coding-document` to record monitoring session telemetry and alerts in `agentic-obsidian/monitoring/`. | Output monitoring telemetry summary directly in chat. |
 | **`agentic-investigate-plugin`** | `agentic-coding-plugin` installed | Once `issue-assessment.md` is approved, ask user via `ask_question` if they want to invoke `@coding` to implement the resolution. | Present manual implementation guidance, explaining `@coding` is not available. |
-| **`agentic-investigate-plugin`** | `agentic-document-plugin` (or `agentic-obsidian-plugin`) installed | Once issue investigation is done, invoke `@coding-document` to archive `issue-assessment.md` in `agentic-obsidian/investigations/`. | Retain local session artifact `issue-assessment.md`. |
-| **`agentic-research-plugin`** | `agentic-document-plugin` (or `agentic-obsidian-plugin`) installed | Once `research-report.md` is approved, invoke `@coding-document` to record research in `agentic-obsidian/research/`, creating a new topic or updating an existing one. | Present research findings directly in chat. |
-| **`agentic-triage-plugin`** | Plugin-specific evaluation | Only evaluate and include response choices for installed plugins (`agentic-coding-plugin` -> coding changes; `agentic-monitoring-plugin` -> monitoring; `agentic-investigate-plugin` -> investigations; `agentic-research-plugin` -> research; `agentic-obsidian-plugin` -> documentation). | Omit response candidate completely from triage options and Laya evaluation. |
+| **`agentic-investigate-plugin`** | `agentic-document-plugin` installed | Once issue investigation is done, invoke `@coding-document` to archive `issue-assessment.md` in `agentic-obsidian/investigations/`. | Retain local session artifact `issue-assessment.md`. |
+| **`agentic-research-plugin`** | `agentic-document-plugin` installed | Once `research-report.md` is approved, invoke `@coding-document` to record research in `agentic-obsidian/research/`, creating a new topic or updating an existing one. | Present research findings directly in chat. |
+| **`agentic-triage-plugin`** | Plugin-specific evaluation | Only evaluate and include response choices for installed plugins (`agentic-coding-plugin` -> coding changes; `agentic-monitor-plugin` -> monitoring; `agentic-investigate-plugin` -> investigations; `agentic-research-plugin` -> research; `agentic-document-plugin` -> documentation). | Omit response candidate completely from triage options and Laya evaluation. |
 
 ---
 
@@ -123,7 +123,7 @@ flowchart TD
     P1 --> AmbiguityCheck{"Ambiguities or<br/>Open Questions?"}
     AmbiguityCheck -->|"Yes"| GrillUser["Interrogate User via ask_question<br/>(One question at a time)"]
     GrillUser --> P1
-    AmbiguityCheck -->|"No / Clarified"| Doc1Check{"agentic-document-plugin<br/>(or agentic-obsidian-plugin)<br/>installed?"}
+    AmbiguityCheck -->|"No / Clarified"| Doc1Check{"agentic-document-plugin<br/>installed?"}
     Doc1Check -->|"Yes"| InvokeDoc1["Invoke @coding-document<br/>(Document requirements & clarification notes)"]
     Doc1Check -->|"No"| P2["Phase 2: Specification<br/>(@coding-specify)"]
     InvokeDoc1 --> P2
