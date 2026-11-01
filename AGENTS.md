@@ -42,6 +42,11 @@ agentic/
 │   ├── skills/               # Monitoring runbooks (@coding-monitor)
 │   ├── agents/               # Monitoring subagent definition
 │   └── README.md
+├── agentic-project-grooming-plugin/# Git Sub-repo: Interactive project initialization & grooming plugin
+│   ├── plugin.json           # Plugin manifest
+│   ├── rules/AGENTS.md       # Plugin-scoped grooming rules
+│   ├── skills/               # Grooming runbook (/project-grooming)
+│   └── README.md
 ├── agentic-research-plugin/  # Git Sub-repo: Autonomous deep web & literature research plugin
 │   ├── plugin.json           # Plugin manifest
 │   ├── rules/AGENTS.md       # Plugin-scoped research standards
@@ -89,6 +94,7 @@ The workspace currently hosts the following specialized plugins (all subagent ha
 - **`agentic-document-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
 - **`agentic-investigate-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@coding-investigate`) with evidence-based verification, interactive approval gates, resolution handoff to `@coding`, and archival via `@coding-document`.
 - **`agentic-monitor-plugin`**: Telemetry and stream surveillance subagent (`@coding-monitor`) with real-time log, Docker container, and serial stream monitoring, automatic anomaly detection, pause gates with `@coding-investigate` invocation, and session archival via `@coding-document`.
+- **`agentic-project-grooming-plugin`**: Interactive project initialization, backlog grooming, and scope boundary interrogation plugin (`/project-grooming`), conducting 7-category Matt Pocock grill-me interviews, interactive approval artifact authoring, and cross-plugin repository scaffolding.
 - **`agentic-research-plugin`**: Autonomous multi-query deep web and literature research subagent (`@coding-research`), featuring iterative query expansion, multi-source evidence extraction and cross-verification, structured citation tracking, interactive research report artifacts, and topic curation via `@coding-document`.
 - **`agentic-triage-plugin`**: High-performance prompt intent classifier and router using the Laya Router System 1 model to dynamically triage user requests across installed agentic plugins, omitting uninstalled plugin responses from evaluation.
 
@@ -105,8 +111,10 @@ The agentic workspace is designed modularly: users may install only a subset of 
 | **`agentic-monitor-plugin`** | `agentic-document-plugin` installed | At the end of monitoring, invoke `@coding-document` to record monitoring session telemetry and alerts in `agentic-obsidian/monitoring/`. | Output monitoring telemetry summary directly in chat. |
 | **`agentic-investigate-plugin`** | `agentic-coding-plugin` installed | Once `issue-assessment.md` is approved, ask user via `ask_question` if they want to invoke `@coding` to implement the resolution. | Present manual implementation guidance, explaining `@coding` is not available. |
 | **`agentic-investigate-plugin`** | `agentic-document-plugin` installed | Once issue investigation is done, invoke `@coding-document` to archive `issue-assessment.md` in `agentic-obsidian/investigations/`. | Retain local session artifact `issue-assessment.md`. |
+| **`agentic-project-grooming-plugin`** | `agentic-coding-plugin` installed | Once `Project_Request_Grooming.md` is approved, invoke `@coding` to coordinate multi-stage repo setup, code generation, and test verification. | Directly scaffold repository directories, initialize git, and write starter boilerplate. |
+| **`agentic-project-grooming-plugin`** | `agentic-document-plugin` installed | Once `Project_Request_Grooming.md` is approved, invoke `@coding-document` to scaffold `<project>-obsidian/` vault and document architecture overview and ADRs. | Directly create baseline Obsidian directory structure and initial README. |
 | **`agentic-research-plugin`** | `agentic-document-plugin` installed | Once `research-report.md` is approved, invoke `@coding-document` to record research in `agentic-obsidian/research/`, creating a new topic or updating an existing one. | Present research findings directly in chat. |
-| **`agentic-triage-plugin`** | Plugin-specific evaluation | Only evaluate and include response choices for installed plugins (`agentic-coding-plugin` -> coding changes; `agentic-monitor-plugin` -> monitoring; `agentic-investigate-plugin` -> investigations; `agentic-research-plugin` -> research; `agentic-document-plugin` -> documentation). | Omit response candidate completely from triage options and Laya evaluation. |
+| **`agentic-triage-plugin`** | Plugin-specific evaluation | Only evaluate and include response choices for installed plugins (`agentic-coding-plugin` -> coding changes; `agentic-investigate-plugin` -> investigations; `agentic-monitor-plugin` -> monitoring; `agentic-project-grooming-plugin` -> project grooming; `agentic-research-plugin` -> research; `agentic-document-plugin` -> documentation). | Omit response candidate completely from triage options and Laya evaluation. |
 
 ---
 

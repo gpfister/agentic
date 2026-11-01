@@ -11,6 +11,7 @@ Workspace coordinator for developing and maintaining **Google Antigravity** plug
 | **`agentic-investigate-plugin/`** | Antigravity Plugin | Autonomous multi-repository issue investigation and root cause diagnosis plugin (`@coding-investigate`). |
 | **`agentic-monitor-plugin/`** | Antigravity Plugin | Telemetry and stream surveillance plugin (`@coding-monitor`) with anomaly detection and interactive pause gates. |
 | **`agentic-obsidian/`** | Obsidian Vault | Centralized documentation hub containing session transcripts, architecture guidelines, and plugin docs. |
+| **`agentic-project-grooming-plugin/`** | Antigravity Plugin | Interactive project initialization and requirements grooming companion (`/project-grooming`) with 7-category interrogation. |
 | **`agentic-research-plugin/`** | Antigravity Plugin | Autonomous multi-query deep web and literature research plugin (`@coding-research`) with evidence verification. |
 | **`agentic-triage-plugin/`** | Antigravity Plugin | Dynamic prompt triage and intent classification plugin using Laya Router System 1 model. |
 
