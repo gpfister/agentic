@@ -7,13 +7,13 @@ Workspace coordinator for developing and maintaining **Google Antigravity** plug
 | Project | Type | Description |
 | :--- | :--- | :--- |
 | **`agentic-coding-plugin/`** | Antigravity Plugin | Structured 6-stage software development companion (`@coding`) with clean code reviews and after-each-phase documentation maintenance. |
-| **`agentic-document-plugin/`** | Antigravity Plugin | Autonomous documentation and knowledge curation companion (`@coding-document`) for Obsidian vaults. |
-| **`agentic-investigate-plugin/`** | Antigravity Plugin | Autonomous multi-repository issue investigation and root cause diagnosis plugin (`@coding-investigate`). |
-| **`agentic-monitor-plugin/`** | Antigravity Plugin | Telemetry and stream surveillance plugin (`@coding-monitor`) with anomaly detection and interactive pause gates. |
+| **`agentic-issue-investigation-plugin/`** | Antigravity Plugin | Autonomous multi-repository issue investigation and root cause diagnosis plugin (`@coding-investigate`). |
 | **`agentic-obsidian/`** | Obsidian Vault | Centralized documentation hub containing session transcripts, architecture guidelines, and plugin docs. |
+| **`agentic-project-documenting-plugin/`** | Antigravity Plugin | Autonomous documentation and knowledge curation companion (`@coding-document`) for Obsidian vaults. |
 | **`agentic-project-grooming-plugin/`** | Antigravity Plugin | Interactive project initialization and requirements grooming companion (`/project-grooming`) with 7-category interrogation. |
-| **`agentic-research-plugin/`** | Antigravity Plugin | Autonomous multi-query deep web and literature research plugin (`@coding-research`) with evidence verification. |
-| **`agentic-triage-plugin/`** | Antigravity Plugin | Dynamic prompt triage and intent classification plugin using Laya Router System 1 model. |
+| **`agentic-prompt-triage-plugin/`** | Antigravity Plugin | Dynamic prompt triage and intent classification plugin using Laya Router System 1 model. |
+| **`agentic-task-monitoring-plugin/`** | Antigravity Plugin | Telemetry and stream surveillance plugin (`@coding-monitor`) with anomaly detection and interactive pause gates. |
+| **`agentic-topic-researching-plugin/`** | Antigravity Plugin | Autonomous multi-query deep web and literature research plugin (`@coding-research`) with evidence verification. |
 
 ## Quick Start
 
