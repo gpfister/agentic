@@ -7,6 +7,7 @@ Workspace coordinator for developing and maintaining **Google Antigravity** plug
 | Project | Type | Description |
 | :--- | :--- | :--- |
 | **`agentic-coding-plugin/`** | Antigravity Plugin | Structured 6-stage software development companion (`@coding`) with clean code reviews and after-each-phase documentation maintenance. |
+| **`agentic-coding-tui/`** | TUI Application | Standalone Textual terminal user interface assistant integrating Google ADK workflows and 100% transparent pass-through background rendering. |
 | **`agentic-issue-investigation-plugin/`** | Antigravity Plugin | Autonomous multi-repository issue investigation and root cause diagnosis plugin (`@coding-investigate`). |
 | **`agentic-obsidian/`** | Obsidian Vault | Centralized documentation hub containing session transcripts, architecture guidelines, and plugin docs. |
 | **`agentic-project-documenting-plugin/`** | Antigravity Plugin | Autonomous documentation and knowledge curation companion (`@coding-document`) for Obsidian vaults. |
