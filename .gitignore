@@ -33,7 +33,6 @@ log/
 *.log
 
 # Sub-repositories
-/agentic-coding-tui/
 /agentic-coding-plugin/
 /agentic-issue-investigation-plugin/
 /agentic-obsidian/
