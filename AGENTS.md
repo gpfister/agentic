@@ -90,7 +90,7 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 
 ### 2.3 Plugin Ecosystem Catalog
 The workspace currently hosts the following specialized plugins (all subagent handles start with `@coding`):
-- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 7-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-deploy`, `@coding-review`, `@coding-merge`) with clean code reviews, Question Relay Protocol inquiry routing, and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
+- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 7-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-deploy`, `@coding-review`, `@coding-merge`) with clean code reviews, Question Relay and Artifact Approval Relay Protocol inquiry routing, and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
 - **`agentic-issue-investigation-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@coding-investigate`) with evidence-based verification, interactive approval gates, resolution handoff to `@coding`, and archival via `@coding-document`.
 - **`agentic-project-documenting-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
 - **`agentic-project-grooming-plugin`**: Interactive project initialization, backlog grooming, and scope boundary interrogation plugin (`/project-grooming`), conducting 7-category Matt Pocock grill-me interviews, interactive approval artifact authoring, and cross-plugin repository scaffolding.
@@ -220,11 +220,121 @@ To ensure consistent enforcement across diverse subagents, agents are categorize
   - When invoked by another agent (subagent mode), route all inquiries through `[QUESTION_RELAY_REQUEST]` via `send_message`.
   - When invoked directly by the user in a top-level session (standalone mode), execute `ask_question` directly without relaying.
 
+### 3.3 Artifact Approval Relay Protocol (Subagent Artifact Gates)
+
+#### 3.3.1 Problem Statement: 60-Second Subagent Timeout on Artifact Feedback
+In Google Antigravity, worker subagents spawned via `invoke_subagent` run inside background processes managed by the runtime. If a worker subagent executes `write_file` with `ArtifactMetadata={"RequestFeedback": True, "UserFacing": True}`, the runtime awaits human interaction (Approve / Reject buttons) while the subagent's tool execution turn remains active. However, the runtime enforces a strict **60-second execution timeout** on background subagent tool invocations.
+
+If human users deliberate, review technical specifications, inspect implementation plans, or take longer than 60 seconds to review the artifact, the subagent tool invocation throws a timeout exception, prematurely terminating the active workflow. Conversely, top-level orchestrators (`@coding` and root session turns) run in the foreground without background tool execution timeouts and can await human gate approval indefinitely.
+
+#### 3.3.2 Architectural Solution: Root-Orchestrated Artifact Approval Relay
+To eliminate timeout failures while preserving interactive human-in-the-loop oversight on artifacts:
+1. **Worker Subagent writes artifact to disk** using `write_file(Path=artifact_path, Content=..., Overwrite=True)` without interactive gate metadata (`ArtifactMetadata` omitted or `RequestFeedback=False`).
+2. **Subagent dispatches `[ARTIFACT_APPROVAL_REQUEST]`** via `send_message(Recipient=caller_id, Message=...)` containing the artifact path, stage, and summary, then halts execution and enters an idle state.
+3. **Parent Orchestrator intercepts request**, reads the artifact from disk, and writes it in the root turn with `write_file(Path=artifact_path, Content=..., ArtifactMetadata={"RequestFeedback": True, "UserFacing": True})` as the **sole and final tool call** of that turn (without any 60-second timeout).
+4. **Parent Orchestrator captures user decision**:
+   - If **Approved**: Dispatches `[ARTIFACT_APPROVAL_RESPONSE]` with `status: "APPROVED"` to `subagent_id`.
+   - If **Rejected**: Dispatches `[ARTIFACT_APPROVAL_RESPONSE]` with `status: "REJECTED"` and user feedback to `subagent_id`.
+5. **Subagent receives response**, is reactively awakened by the runtime:
+   - On approval: proceeds to completion or the next phase.
+   - On rejection: reads user feedback, modifies the artifact on disk, and re-submits `[ARTIFACT_APPROVAL_REQUEST]`.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Human User
+    participant O as Top-Level Orchestrator (@coding / Root)
+    participant S as Worker Subagent (@coding-specify / @coding-plan / etc.)
+
+    Note over S: Phase execution & artifact generation
+    S->>S: write_file(artifact_path, Content, Overwrite=True)<br/>[ArtifactMetadata omitted or RequestFeedback=False]
+    S->>O: send_message(Recipient=caller_id, [ARTIFACT_APPROVAL_REQUEST])
+    Note over S: Enters IDLE state (awaits reactive wakeup)
+
+    Note over O: Intercepts [ARTIFACT_APPROVAL_REQUEST]
+    O->>U: write_file(artifact_path, Content, ArtifactMetadata={RequestFeedback: True, UserFacing: True})<br/>[Sole & final tool call of turn]
+    Note over U: Human reviews document (No 60-second timeout)
+    U-->>O: Interactive Click: Approve OR Reject (with feedback)
+
+    alt Approved by User
+        O->>S: send_message(Recipient=subagent_id, [ARTIFACT_APPROVAL_RESPONSE: APPROVED])
+        Note over S: Reactive wakeup, proceeds to completion / next phase
+    else Rejected with Feedback
+        O->>S: send_message(Recipient=subagent_id, [ARTIFACT_APPROVAL_RESPONSE: REJECTED])
+        Note over S: Reactive wakeup, updates artifact on disk
+        S->>O: send_message(Recipient=caller_id, [ARTIFACT_APPROVAL_REQUEST])
+    end
+```
+
+#### 3.3.3 Message Envelopes & Schemas
+
+##### Request Envelope: `[ARTIFACT_APPROVAL_REQUEST]`
+Dispatched by the worker subagent to the parent orchestrator (`caller_id`):
+
+```text
+[ARTIFACT_APPROVAL_REQUEST]
+```
+```json
+{
+  "type": "ARTIFACT_APPROVAL_REQUEST",
+  "artifact_name": "specification.md",
+  "artifact_path": "/Users/user/.gemini/antigravity/brain/<session-id>/specification.md",
+  "stage": "SPECIFICATION",
+  "summary": "Detailed technical specification for feature XYZ",
+  "user_facing": true
+}
+```
+
+*Fields*:
+- `type`: Must be `"ARTIFACT_APPROVAL_REQUEST"`.
+- `artifact_name`: Name of the artifact file (e.g., `specification.md`, `plan.md`, `deployment-issue.md`, `issue-assessment.md`, `Project_Request_Grooming.md`, `research-report.md`).
+- `artifact_path`: Absolute path to the authored artifact on disk.
+- `stage`: Lifecycle phase producing the artifact (e.g., `"SPECIFICATION"`, `"PLANNING"`, `"DEPLOYMENT_ISSUE"`, `"INVESTIGATION"`, `"GROOMING"`, `"RESEARCH"`).
+- `summary`: Multi-line or detailed string describing the contents and purpose for `ArtifactMetadata.Summary`.
+- `user_facing`: Boolean flag indicating whether `ArtifactMetadata.UserFacing` should be `true` (defaults to `true`).
+
+##### Response Envelope: `[ARTIFACT_APPROVAL_RESPONSE]`
+Dispatched by the parent orchestrator back to the worker subagent (`subagent_id`):
+
+```text
+[ARTIFACT_APPROVAL_RESPONSE]
+```
+```json
+{
+  "type": "ARTIFACT_APPROVAL_RESPONSE",
+  "artifact_name": "specification.md",
+  "status": "APPROVED",
+  "feedback": ""
+}
+```
+
+*Fields*:
+- `type`: Must be `"ARTIFACT_APPROVAL_RESPONSE"`.
+- `artifact_name`: Name of the artifact corresponding to the request.
+- `status`: Outcome of the user review gate (`"APPROVED"` or `"REJECTED"`).
+- `feedback`: User feedback string provided when rejected (or empty string if approved without comment).
+
+#### 3.3.4 Pure Subagents vs. Dual-Mode Subagents Matrix
+
+| Tier | Agents | Artifacts Produced | Operating Protocol | Tooling & Artifact Gate Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| **Pure Subagents** | `@coding-specify`<br>`@coding-plan`<br>`@coding-deploy` | `specification.md`<br>`plan.md`<br>`deployment-issue.md` | Strictly run under `@coding` orchestrator. **NEVER** write artifacts with `RequestFeedback=True`. Always write to disk without feedback gate and dispatch `[ARTIFACT_APPROVAL_REQUEST]` to `caller_id` via `send_message`. | `write_file` (without `RequestFeedback=True`), `send_message` |
+| **Dual-Mode Agents** | `@coding-investigate`<br>`/project-grooming` (`@coding-groom`)<br>`@coding-research` | `issue-assessment.md`<br>`Project_Request_Grooming.md`<br>`research-report.md` | **Parent Caller Present**: Write artifact to disk without `RequestFeedback=True`, dispatch `[ARTIFACT_APPROVAL_REQUEST]` via `send_message` to caller.<br>**Standalone / Root**: Author artifact directly using `write_file` with `ArtifactMetadata={"RequestFeedback": True, "UserFacing": True}` as the sole & final tool call of the turn. | `write_file` (with or without `RequestFeedback`), `send_message` |
+
+- **Pure Subagents Rules**:
+  - Never call `write_file` with `ArtifactMetadata={"RequestFeedback": True, ...}`.
+  - Package artifact approval requests into `[ARTIFACT_APPROVAL_REQUEST]` and deliver via `send_message`.
+  - Enter idle state and await reactive wakeup upon receiving `[ARTIFACT_APPROVAL_RESPONSE]`.
+- **Dual-Mode Agents Rules**:
+  - Dynamically inspect caller context (check if a parent caller ID is provided in session context/metadata).
+  - When invoked by another agent (subagent mode), write artifact without feedback gate and route approval through `[ARTIFACT_APPROVAL_REQUEST]` via `send_message`.
+  - When invoked directly by the user in a top-level session (standalone mode), execute `write_file` with `ArtifactMetadata={"RequestFeedback": True, "UserFacing": True}` directly as the sole and final tool call of the turn.
+
 ---
 
 ## 4. Coding Workflow Pipeline & Decision Flowchart
 
-The software development lifecycle coordinates specialized `@coding-*` subagents across 7 distinct phases with strict approval gates, local deployment verification, and Question Relay Protocol inquiry routing:
+The software development lifecycle coordinates specialized `@coding-*` subagents across 7 distinct phases with strict approval gates, local deployment verification, and Question Relay / Artifact Approval Relay Protocol inquiry routing:
 
 ```mermaid
 flowchart TD
@@ -238,14 +348,14 @@ flowchart TD
     AmbiguityCheck -->|"No / Clarified"| P2["Phase 2: Specification<br/>(@coding-specify)"]
 
     %% Phase 2: Specification
-    P2 --> SpecArtifact["Write specification.md<br/>(RequestFeedback=True, sole tool call)"]
-    SpecArtifact --> IdleSpec["Enter IDLE State<br/>(Wait for User Gate Decision)"]
+    P2 --> SpecRelay["Write specification.md to disk & relay<br/>([ARTIFACT_APPROVAL_REQUEST] -> @coding root<br/>write_file(RequestFeedback=True))"]
+    SpecRelay --> IdleSpec["Await User Decision<br/>(Root Gate: No Timeout)"]
     IdleSpec --> SpecGate{"User Decision on<br/>specification.md?"}
     SpecGate -->|"[GATE_APPROVED]"| P3["Phase 3: Planning<br/>(@coding-plan)"]
 
     %% Phase 3: Planning
-    P3 --> PlanArtifact["Write plan.md<br/>(RequestFeedback=True, sole tool call)"]
-    PlanArtifact --> IdlePlan["Enter IDLE State<br/>(Wait for User Gate Decision)"]
+    P3 --> PlanRelay["Write plan.md to disk & relay<br/>([ARTIFACT_APPROVAL_REQUEST] -> @coding root<br/>write_file(RequestFeedback=True))"]
+    PlanRelay --> IdlePlan["Await User Decision<br/>(Root Gate: No Timeout)"]
     IdlePlan --> PlanGate{"User Decision on<br/>plan.md?"}
     PlanGate -->|"[GATE_APPROVED]"| DocPlanCheck{"agentic-project-documenting-plugin<br/>installed?"}
     DocPlanCheck -->|"Yes"| InvokeDocPlan["Invoke @coding-document<br/>(Document architecture plan & ADRs)"]
@@ -263,8 +373,8 @@ flowchart TD
     P5Deploy --> DeployRun["Execute local deploy & monitor health"]
     DeployRun --> DeploySuccess{"Deployment<br/>Successful?"}
     DeploySuccess -->|"Yes"| JoinDevDeploy
-    DeploySuccess -->|"Error"| DeployIssueArtifact["Investigate error & author<br/>Deployment Issue artifact<br/>(RequestFeedback=True)"]
-    DeployIssueArtifact --> DeployGate{"User Decision on<br/>Deployment Issue?"}
+    DeploySuccess -->|"Error"| DeployIssueRelay["Write deployment-issue.md & relay<br/>([ARTIFACT_APPROVAL_REQUEST] -> @coding root<br/>write_file(RequestFeedback=True))"]
+    DeployIssueRelay --> DeployGate{"User Decision on<br/>Deployment Issue?"}
     DeployGate -->|"Approved"| MultiSolCheck{"Multiple solutions<br/>proposed?"}
     MultiSolCheck -->|"Yes"| AskSol["Relay solution choice<br/>([QUESTION_RELAY_REQUEST] -> ask_question<br/>-> [QUESTION_RELAY_RESPONSE])"]
     MultiSolCheck -->|"Single"| InvokeFixDev["Invoke @coding-develop<br/>to implement fix"]
@@ -304,15 +414,16 @@ flowchart TD
    - Conducts single-question user interrogation across scope, requirements, edge cases, and non-goals.
    - **Question Relay Interaction**: Rather than calling `ask_question` directly, dispatches `[QUESTION_RELAY_REQUEST]` envelopes via `send_message`. The `@coding` orchestrator executes `ask_question` in the root turn and replies with `[QUESTION_RELAY_RESPONSE]`.
 2. **Phase 2: Specification (`@coding-specify`)**:
-   - Synthesizes findings into `specification.md` (`RequestFeedback=True` as sole tool call).
-   - Enters IDLE state awaiting user gate decision (`[GATE_APPROVED]` advances to Phase 3; `[GATE_REJECTED]` routes to Phase 1).
+   - Synthesizes findings and writes `specification.md` to disk without interactive feedback metadata.
+   - **Artifact Approval Relay Interaction**: Rather than calling `write_file` with `RequestFeedback=True` (which risks the 60-second subagent timeout), dispatches `[ARTIFACT_APPROVAL_REQUEST]` to `@coding`. The `@coding` orchestrator presents `specification.md` at the root turn with `RequestFeedback=True` as its sole and final tool call. Enters IDLE state awaiting `[ARTIFACT_APPROVAL_RESPONSE]` (`"APPROVED"` advances to Phase 3; `"REJECTED"` receives feedback and updates the specification).
 3. **Phase 3: Planning (`@coding-plan`)**:
-   - Decomposes work per repository, determines isolated branches (`feature/*`, `task/*`, `bugfix/*`), and assesses local deployment needs.
-   - Authors `plan.md` (`RequestFeedback=True` as sole tool call). Upon approval, invokes `@coding-document` if installed before advancing to Phase 4.
+   - Decomposes work per repository, determines isolated branches (`feature/*`, `task/*`, `bugfix/*`), assesses local deployment needs, and writes `plan.md` to disk.
+   - **Artifact Approval Relay Interaction**: Dispatches `[ARTIFACT_APPROVAL_REQUEST]` to `@coding`. The orchestrator presents the interactive approval gate for `plan.md` at the root turn. Upon `[ARTIFACT_APPROVAL_RESPONSE]` with `"APPROVED"`, invokes `@coding-document` if installed before advancing to Phase 4.
 4. **Phase 4: Development (`@coding-develop`)**:
    - Fans out parallel worker subagents per repository. Workers implement code, author unit/integration tests, run linters, and return a structured `DevelopReport`.
 5. **Phase 5: Local Deployment (`@coding-deploy`)**:
    - Executes and monitors local deployments (Docker, Docker Compose, Minikube, scripts) for repositories requiring runtime verification.
+   - **Deployment Issue Artifact Relay**: If deployment fails, `@coding-deploy` analyzes logs, writes `deployment-issue.md` to disk without interactive feedback metadata, and dispatches `[ARTIFACT_APPROVAL_REQUEST]` to `@coding`. The root orchestrator presents the interactive gate without subagent timeout risk.
    - **Question Relay Interaction**: When deployment remediations offer multiple solutions, `@coding-deploy` dispatches a `[QUESTION_RELAY_REQUEST]` to `@coding`. The orchestrator prompts the user and returns the chosen remediation in `[QUESTION_RELAY_RESPONSE]` before invoking `@coding-develop` to fix.
 6. **Phase 6: Quality Review & Audit (`@coding-review`)**:
    - Audits deliverables against specification, verifies code quality, test suite execution, and local deployment health.
