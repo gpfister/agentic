@@ -90,7 +90,7 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 
 ### 2.3 Plugin Ecosystem Catalog
 The workspace currently hosts the following specialized plugins (all subagent handles start with `@coding`):
-- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 6-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-review`, `@coding-merge`) with clean code reviews and after-each-phase documentation maintenance via `@coding-document`.
+- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 6-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-review`, `@coding-merge`) with clean code reviews and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
 - **`agentic-issue-investigation-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@coding-investigate`) with evidence-based verification, interactive approval gates, resolution handoff to `@coding`, and archival via `@coding-document`.
 - **`agentic-project-documenting-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
 - **`agentic-project-grooming-plugin`**: Interactive project initialization, backlog grooming, and scope boundary interrogation plugin (`/project-grooming`), conducting 7-category Matt Pocock grill-me interviews, interactive approval artifact authoring, and cross-plugin repository scaffolding.
@@ -106,7 +106,7 @@ The agentic workspace is designed modularly: users may install only a subset of 
 
 | Originating Plugin | Target Condition | Action / Decision Taken | Graceful Fallback if Not Installed |
 | :--- | :--- | :--- | :--- |
-| **`agentic-coding-plugin`** | `agentic-project-documenting-plugin` installed | Invoke `@coding-document` after **each phase** (Clarify, Specify, Plan, Develop, Review, Merge) to maintain specs, ADRs, test notes, and git status. | Skip documentation step and proceed directly to subsequent development phase. |
+| **`agentic-coding-plugin`** | `agentic-project-documenting-plugin` installed | Invoke `@coding-document` only after plan approval (Phase 3), before merging (Phase 5), and at the end (Phase 6) to maintain specs, ADRs, and git status. | Skip documentation step and proceed directly to subsequent development phase. |
 | **`agentic-task-monitoring-plugin`** | `agentic-issue-investigation-plugin` installed | For each issue/anomaly discovered, ask user via `ask_question` if they want to invoke `@coding-investigate` to investigate root cause. | Present standard pause gate options (inspect code manually, restart, ignore, abort) without offering `@coding-investigate`. |
 | **`agentic-task-monitoring-plugin`** | `agentic-project-documenting-plugin` installed | At the end of monitoring, invoke `@coding-document` to record monitoring session telemetry and alerts in `agentic-obsidian/monitoring/`. | Output monitoring telemetry summary directly in chat. |
 | **`agentic-issue-investigation-plugin`** | `agentic-coding-plugin` installed | Once `issue-assessment.md` is approved, ask user via `ask_question` if they want to invoke `@coding` to implement the resolution. | Present manual implementation guidance, explaining `@coding` is not available. |
@@ -131,52 +131,43 @@ flowchart TD
     P1 --> AmbiguityCheck{"Ambiguities or<br/>Open Questions?"}
     AmbiguityCheck -->|"Yes"| GrillUser["Interrogate User via ask_question<br/>(One question at a time)"]
     GrillUser --> P1
-    AmbiguityCheck -->|"No / Clarified"| Doc1Check{"agentic-project-documenting-plugin<br/>installed?"}
-    Doc1Check -->|"Yes"| InvokeDoc1["Invoke @coding-document<br/>(Document requirements & clarification notes)"]
-    Doc1Check -->|"No"| P2["Phase 2: Specification<br/>(@coding-specify)"]
-    InvokeDoc1 --> P2
+    AmbiguityCheck -->|"No / Clarified"| P2["Phase 2: Specification<br/>(@coding-specify)"]
 
     %% Phase 2: Specification
     P2 --> SpecArtifact["Write specification.md<br/>(RequestFeedback=True, sole tool call)"]
     SpecArtifact --> IdleSpec["Enter IDLE State<br/>(Wait for User Gate Decision)"]
     IdleSpec --> SpecGate{"User Decision on<br/>specification.md?"}
-    SpecGate -->|"[GATE_APPROVED]"| Doc2Check{"agentic-project-documenting-plugin<br/>installed?"}
-    Doc2Check -->|"Yes"| InvokeDoc2["Invoke @coding-document<br/>(Document & index feature specifications)"]
-    Doc2Check -->|"No"| P3["Phase 3: Planning<br/>(@coding-plan)"]
-    InvokeDoc2 --> P3
+    SpecGate -->|"[GATE_APPROVED]"| P3["Phase 3: Planning<br/>(@coding-plan)"]
 
     %% Phase 3: Planning
     P3 --> PlanArtifact["Write plan.md<br/>(RequestFeedback=True, sole tool call)"]
     PlanArtifact --> IdlePlan["Enter IDLE State<br/>(Wait for User Gate Decision)"]
     IdlePlan --> PlanGate{"User Decision on<br/>plan.md?"}
-    PlanGate -->|"[GATE_APPROVED]"| Doc3Check{"agentic-project-documenting-plugin<br/>installed?"}
-    Doc3Check -->|"Yes"| InvokeDoc3["Invoke @coding-document<br/>(Document architecture plan & ADRs)"]
-    Doc3Check -->|"No"| P4["Phase 4: Development<br/>(@coding-develop)"]
-    InvokeDoc3 --> P4
+    PlanGate -->|"[GATE_APPROVED]"| DocPlanCheck{"agentic-project-documenting-plugin<br/>installed?"}
+    DocPlanCheck -->|"Yes"| InvokeDocPlan["Invoke @coding-document<br/>(Document architecture plan & ADRs)"]
+    DocPlanCheck -->|"No"| P4["Phase 4: Development<br/>(@coding-develop)"]
+    InvokeDocPlan --> P4
 
     %% Phase 4: Development
     P4 --> ParallelDev["Fan out parallel workers<br/>per repo on isolated branches"]
     ParallelDev --> DevWork["Implement code, tests, linting<br/>Return DevelopReport"]
-    DevWork --> Doc4Check{"agentic-project-documenting-plugin<br/>installed?"}
-    Doc4Check -->|"Yes"| InvokeDoc4["Invoke @coding-document<br/>(Document code changes & implementation notes)"]
-    Doc4Check -->|"No"| P5["Phase 5: Review<br/>(@coding-review)"]
-    InvokeDoc4 --> P5
+    DevWork --> P5["Phase 5: Review<br/>(@coding-review)"]
 
     %% Phase 5: Review
     P5 --> AuditChanges["Audit deliverables against spec<br/>Run verification test suites"]
     AuditChanges --> ReviewCheck{"Quality Audit<br/>Passed?"}
     ReviewCheck -->|"Passed"| MergeConfirmGate{"Confirm Merge with User<br/>(ask_question)"}
-    MergeConfirmGate -->|"User Confirmed"| Doc5Check{"agentic-project-documenting-plugin<br/>installed?"}
-    Doc5Check -->|"Yes"| InvokeDoc5["Invoke @coding-document<br/>(Pre-merge tidy-up: update READMEs & architecture docs)"]
-    Doc5Check -->|"No"| P6["Phase 6: Merge & Release<br/>(@coding-merge)"]
-    InvokeDoc5 --> P6
+    MergeConfirmGate -->|"User Confirmed"| DocPreMergeCheck{"agentic-project-documenting-plugin<br/>installed?"}
+    DocPreMergeCheck -->|"Yes"| InvokeDocPreMerge["Invoke @coding-document<br/>(Pre-merge tidy-up: update READMEs & architecture docs)"]
+    DocPreMergeCheck -->|"No"| P6["Phase 6: Merge & Release<br/>(@coding-merge)"]
+    InvokeDocPreMerge --> P6
 
     %% Phase 6: Release & Merge
     P6 --> ExecMerge["Execute git merge or open GitHub PR"]
-    ExecMerge --> Doc6Check{"agentic-project-documenting-plugin<br/>installed?"}
-    Doc6Check -->|"Yes"| InvokeDoc6["Invoke @coding-document<br/>(Post-merge: update git status, branch tracking & changelogs)"]
-    Doc6Check -->|"No"| Complete(["Workflow Completed"])
-    InvokeDoc6 --> Complete
+    ExecMerge --> DocPostMergeCheck{"agentic-project-documenting-plugin<br/>installed?"}
+    DocPostMergeCheck -->|"Yes"| InvokeDocPostMerge["Invoke @coding-document<br/>(Post-merge: update git status, branch tracking & changelogs)"]
+    DocPostMergeCheck -->|"No"| Complete(["Workflow Completed"])
+    InvokeDocPostMerge --> Complete
 
     %% Rejection & Rework Loops (routing upward)
     SpecGate -->|"[GATE_REJECTED]"| P1
