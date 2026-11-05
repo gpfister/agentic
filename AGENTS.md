@@ -90,7 +90,7 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 
 ### 2.3 Plugin Ecosystem Catalog
 The workspace currently hosts the following specialized plugins (all subagent handles start with `@coding`):
-- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 6-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-review`, `@coding-merge`) with clean code reviews and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
+- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 7-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-deploy`, `@coding-review`, `@coding-merge`) with clean code reviews, Question Relay Protocol inquiry routing, and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
 - **`agentic-issue-investigation-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@coding-investigate`) with evidence-based verification, interactive approval gates, resolution handoff to `@coding`, and archival via `@coding-document`.
 - **`agentic-project-documenting-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
 - **`agentic-project-grooming-plugin`**: Interactive project initialization, backlog grooming, and scope boundary interrogation plugin (`/project-grooming`), conducting 7-category Matt Pocock grill-me interviews, interactive approval artifact authoring, and cross-plugin repository scaffolding.
@@ -101,6 +101,8 @@ The workspace currently hosts the following specialized plugins (all subagent ha
 ---
 
 ## 3. Cross-Plugin Awareness & Interoperability
+
+### 3.1 Dynamic Companion Detection & Adaptation
 
 The agentic workspace is designed modularly: users may install only a subset of plugins. Every plugin must gracefully detect companion plugins and adapt its workflow dynamically:
 
@@ -116,11 +118,113 @@ The agentic workspace is designed modularly: users may install only a subset of 
 | **`agentic-topic-researching-plugin`** | `agentic-project-documenting-plugin` installed | Once `research-report.md` is approved, invoke `@coding-document` to record research in `agentic-obsidian/research/`, creating a new topic or updating an existing one. | Present research findings directly in chat. |
 | **`agentic-prompt-triage-plugin`** | Plugin-specific evaluation | Only evaluate and include response choices for installed plugins (`agentic-coding-plugin` -> coding changes; `agentic-issue-investigation-plugin` -> investigations; `agentic-task-monitoring-plugin` -> monitoring; `agentic-project-grooming-plugin` -> project grooming; `agentic-topic-researching-plugin` -> research; `agentic-project-documenting-plugin` -> documentation). | Omit response candidate completely from triage options and Laya evaluation. |
 
+### 3.2 Question Relay Protocol (Subagent User Inquiries)
+
+#### 3.2.1 Problem Statement: 60-Second Subagent Timeout
+In Google Antigravity, worker subagents spawned via `invoke_subagent` run inside background processes managed by the runtime. If a worker subagent executes `ask_question` directly, the runtime enforces a strict **60-second execution timeout** on the turn.
+
+If human users deliberate, review technical options, or take longer than 60 seconds to respond, the subagent tool invocation throws a timeout exception, terminating the active workflow prematurely. Conversely, top-level orchestrators (`@coding` and root session turns) run without background tool execution timeouts and can await human input via `ask_question` indefinitely.
+
+#### 3.2.2 Architectural Solution: Standardized Relay Protocol
+To eliminate timeout failures while preserving interactive human-in-the-loop oversight, subagents must never call `ask_question` directly while under orchestrator control. Instead, subagents relay questions to their parent caller via `send_message` using standardized protocol envelopes:
+
+1. **Subagent dispatches `[QUESTION_RELAY_REQUEST]`** via `send_message(Recipient=caller_id, Message=...)` and halts execution, entering an idle state.
+2. **Parent Orchestrator intercepts request**, calls `ask_question` in the root turn (without any 60-second timeout), and captures the user's interactive response.
+3. **Parent Orchestrator returns `[QUESTION_RELAY_RESPONSE]`** via `send_message(Recipient=subagent_id, Message=...)`.
+4. **Subagent receives response**, is reactively awakened by the runtime, processes the answer, and advances its workflow.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Human User
+    participant O as Top-Level Orchestrator (@coding / Root)
+    participant S as Worker Subagent (@coding-clarify, @coding-investigate, etc.)
+
+    Note over S: Needs user clarification or confirmation
+    S->>O: send_message(Recipient=caller_id, [QUESTION_RELAY_REQUEST])
+    Note over S: Enters IDLE state (awaits reactive wakeup)
+    Note over O: Intercepts relay request
+    O->>U: ask_question(question, options, is_multi_select)
+    Note over U: Human deliberates (No 60-second timeout)
+    U-->>O: Selected Option / User Answer
+    O->>S: send_message(Recipient=subagent_id, [QUESTION_RELAY_RESPONSE])
+    Note over S: Reactive wakeup, processes answer, advances workflow
+```
+
+#### 3.2.3 Message Envelopes & Schemas
+
+##### Request Envelope: `[QUESTION_RELAY_REQUEST]`
+Dispatched by the worker subagent to the parent orchestrator (`caller_id`):
+
+```text
+[QUESTION_RELAY_REQUEST]
+```
+```json
+{
+  "type": "QUESTION_RELAY_REQUEST",
+  "questions": [
+    {
+      "question": "Which architecture pattern should we follow for the relay handler?",
+      "options": [
+        "(Recommended) Event-driven message listener hook in orchestrator loop",
+        "Synchronous subagent blocking loop with sleep",
+        "Direct callback via shared memory"
+      ],
+      "is_multi_select": false
+    }
+  ],
+  "context": "Clarification needed for orchestrator-subagent interaction design."
+}
+```
+
+*Rules*:
+- `questions` array MUST contain exactly one question object to strictly enforce the "one question at a time" clarification principle.
+- `options` MUST include clear choices with `(Recommended)` prefixing the recommended option when guidance is provided.
+- `is_multi_select` defaults to `false`.
+
+##### Response Envelope: `[QUESTION_RELAY_RESPONSE]`
+Dispatched by the parent orchestrator back to the worker subagent (`subagent_id`):
+
+```text
+[QUESTION_RELAY_RESPONSE]
+```
+```json
+{
+  "type": "QUESTION_RELAY_RESPONSE",
+  "answers": [
+    "(Recommended) Event-driven message listener hook in orchestrator loop"
+  ],
+  "status": "COMPLETED"
+}
+```
+
+*Rules*:
+- `answers` contains the array of user-selected strings or custom user input text.
+- `status` indicates outcome: `"COMPLETED"`, `"REJECTED"`, or `"CANCELLED"`.
+
+#### 3.2.4 Pure Subagents vs. Dual-Mode Subagents
+
+To ensure consistent enforcement across diverse subagents, agents are categorized into two tiers:
+
+| Tier | Agents | Operating Protocol | Tooling Permissions |
+| :--- | :--- | :--- | :--- |
+| **Pure Subagents** | `@coding-clarify`<br>`@coding-deploy`<br>`@coding-review` | Strictly run under `@coding` orchestrator. **NEVER** call `ask_question`. Always dispatch `[QUESTION_RELAY_REQUEST]` to `caller_id` via `send_message`. | `send_message`<br>(Do not declare `ask_question`) |
+| **Dual-Mode Agents** | `@coding-investigate`<br>`/project-grooming` (`@coding-groom`)<br>`@coding-monitor`<br>`@coding-research` | **Parent Caller Present**: Dispatch `[QUESTION_RELAY_REQUEST]` via `send_message` to caller.<br>**Standalone / Root**: Invoke `ask_question` directly when invoked at the top-level turn. | Both `send_message` and `ask_question` |
+
+- **Pure Subagents Rules**:
+  - Never declare or execute `ask_question`.
+  - Package questions into `[QUESTION_RELAY_REQUEST]` and deliver via `send_message`.
+  - Enter idle state and await reactive wakeup upon receiving `[QUESTION_RELAY_RESPONSE]`.
+- **Dual-Mode Agents Rules**:
+  - Dynamically inspect caller context (check if a parent caller ID is provided in session context/metadata).
+  - When invoked by another agent (subagent mode), route all inquiries through `[QUESTION_RELAY_REQUEST]` via `send_message`.
+  - When invoked directly by the user in a top-level session (standalone mode), execute `ask_question` directly without relaying.
+
 ---
 
 ## 4. Coding Workflow Pipeline & Decision Flowchart
 
-The software development lifecycle coordinates specialized `@coding-*` subagents across 6 distinct phases with strict approval gates and idle guards:
+The software development lifecycle coordinates specialized `@coding-*` subagents across 7 distinct phases with strict approval gates, local deployment verification, and Question Relay Protocol inquiry routing:
 
 ```mermaid
 flowchart TD
@@ -129,7 +233,7 @@ flowchart TD
     
     %% Phase 1: Clarification
     P1 --> AmbiguityCheck{"Ambiguities or<br/>Open Questions?"}
-    AmbiguityCheck -->|"Yes"| GrillUser["Interrogate User via ask_question<br/>(One question at a time)"]
+    AmbiguityCheck -->|"Yes"| GrillUser["Relay Question to User<br/>([QUESTION_RELAY_REQUEST] -> ask_question<br/>-> [QUESTION_RELAY_RESPONSE])"]
     GrillUser --> P1
     AmbiguityCheck -->|"No / Clarified"| P2["Phase 2: Specification<br/>(@coding-specify)"]
 
@@ -148,22 +252,38 @@ flowchart TD
     DocPlanCheck -->|"No"| P4["Phase 4: Development<br/>(@coding-develop)"]
     InvokeDocPlan --> P4
 
-    %% Phase 4: Development
+    %% Phase 4: Development & Phase 5: Local Deployment (Per-Repo)
     P4 --> ParallelDev["Fan out parallel workers<br/>per repo on isolated branches"]
     ParallelDev --> DevWork["Implement code, tests, linting<br/>Return DevelopReport"]
-    DevWork --> P5["Phase 5: Review<br/>(@coding-review)"]
+    DevWork --> DeployCheck{"Local deployment<br/>instructions exist?"}
+    DeployCheck -->|"Yes"| P5Deploy["Phase 5: Local Deployment<br/>(@coding-deploy per repo)"]
+    DeployCheck -->|"No"| JoinDevDeploy["Synchronize Deliverables<br/>(All develop & deploy done)"]
 
-    %% Phase 5: Review
-    P5 --> AuditChanges["Audit deliverables against spec<br/>Run verification test suites"]
+    %% Phase 5: Deployment Execution, Monitoring & Error Loop
+    P5Deploy --> DeployRun["Execute local deploy & monitor health"]
+    DeployRun --> DeploySuccess{"Deployment<br/>Successful?"}
+    DeploySuccess -->|"Yes"| JoinDevDeploy
+    DeploySuccess -->|"Error"| DeployIssueArtifact["Investigate error & author<br/>Deployment Issue artifact<br/>(RequestFeedback=True)"]
+    DeployIssueArtifact --> DeployGate{"User Decision on<br/>Deployment Issue?"}
+    DeployGate -->|"Approved"| MultiSolCheck{"Multiple solutions<br/>proposed?"}
+    MultiSolCheck -->|"Yes"| AskSol["Relay solution choice<br/>([QUESTION_RELAY_REQUEST] -> ask_question<br/>-> [QUESTION_RELAY_RESPONSE])"]
+    MultiSolCheck -->|"Single"| InvokeFixDev["Invoke @coding-develop<br/>to implement fix"]
+    AskSol --> InvokeFixDev
+    InvokeFixDev --> P5Deploy
+    DeployGate -->|"Rejected"| AbortWorkflow(["Abort / Terminate"])
+
+    %% Phase 6: Review
+    JoinDevDeploy --> P6Review["Phase 6: Review<br/>(@coding-review)"]
+    P6Review --> AuditChanges["Audit deliverables & deployment<br/>Run verification test suites"]
     AuditChanges --> ReviewCheck{"Quality Audit<br/>Passed?"}
-    ReviewCheck -->|"Passed"| MergeConfirmGate{"Confirm Merge with User<br/>(ask_question)"}
+    ReviewCheck -->|"Passed"| MergeConfirmGate{"Confirm Merge with User<br/>(ask_question directly or relayed via<br/>[QUESTION_RELAY_REQUEST])"}
     MergeConfirmGate -->|"User Confirmed"| DocPreMergeCheck{"agentic-project-documenting-plugin<br/>installed?"}
     DocPreMergeCheck -->|"Yes"| InvokeDocPreMerge["Invoke @coding-document<br/>(Pre-merge tidy-up: update READMEs & architecture docs)"]
-    DocPreMergeCheck -->|"No"| P6["Phase 6: Merge & Release<br/>(@coding-merge)"]
-    InvokeDocPreMerge --> P6
+    DocPreMergeCheck -->|"No"| P7Merge["Phase 7: Merge & Release<br/>(@coding-merge)"]
+    InvokeDocPreMerge --> P7Merge
 
-    %% Phase 6: Release & Merge
-    P6 --> ExecMerge["Execute git merge or open GitHub PR"]
+    %% Phase 7: Release & Merge
+    P7Merge --> ExecMerge["Wait for all develop & deploy<br/>Execute git merge or open GitHub PR"]
     ExecMerge --> DocPostMergeCheck{"agentic-project-documenting-plugin<br/>installed?"}
     DocPostMergeCheck -->|"Yes"| InvokeDocPostMerge["Invoke @coding-document<br/>(Post-merge: update git status, branch tracking & changelogs)"]
     DocPostMergeCheck -->|"No"| Complete(["Workflow Completed"])
@@ -175,12 +295,34 @@ flowchart TD
     ReviewCheck -->|"Defects Found"| P3
 
     %% User Denied Merge routes directly to bottom termination
-    MergeConfirmGate -->|"User Denied"| AbortWorkflow(["Abort / Terminate"])
+    MergeConfirmGate -->|"User Denied"| AbortWorkflow
 ```
+
+### 4.1 Phase Lifecycle & Relay Checkpoints
+
+1. **Phase 1: Clarification (`@coding-clarify`)**:
+   - Conducts single-question user interrogation across scope, requirements, edge cases, and non-goals.
+   - **Question Relay Interaction**: Rather than calling `ask_question` directly, dispatches `[QUESTION_RELAY_REQUEST]` envelopes via `send_message`. The `@coding` orchestrator executes `ask_question` in the root turn and replies with `[QUESTION_RELAY_RESPONSE]`.
+2. **Phase 2: Specification (`@coding-specify`)**:
+   - Synthesizes findings into `specification.md` (`RequestFeedback=True` as sole tool call).
+   - Enters IDLE state awaiting user gate decision (`[GATE_APPROVED]` advances to Phase 3; `[GATE_REJECTED]` routes to Phase 1).
+3. **Phase 3: Planning (`@coding-plan`)**:
+   - Decomposes work per repository, determines isolated branches (`feature/*`, `task/*`, `bugfix/*`), and assesses local deployment needs.
+   - Authors `plan.md` (`RequestFeedback=True` as sole tool call). Upon approval, invokes `@coding-document` if installed before advancing to Phase 4.
+4. **Phase 4: Development (`@coding-develop`)**:
+   - Fans out parallel worker subagents per repository. Workers implement code, author unit/integration tests, run linters, and return a structured `DevelopReport`.
+5. **Phase 5: Local Deployment (`@coding-deploy`)**:
+   - Executes and monitors local deployments (Docker, Docker Compose, Minikube, scripts) for repositories requiring runtime verification.
+   - **Question Relay Interaction**: When deployment remediations offer multiple solutions, `@coding-deploy` dispatches a `[QUESTION_RELAY_REQUEST]` to `@coding`. The orchestrator prompts the user and returns the chosen remediation in `[QUESTION_RELAY_RESPONSE]` before invoking `@coding-develop` to fix.
+6. **Phase 6: Quality Review & Audit (`@coding-review`)**:
+   - Audits deliverables against specification, verifies code quality, test suite execution, and local deployment health.
+   - **Question Relay Interaction**: Merge confirmation is prompted either directly by `@coding` via `ask_question` or relayed by `@coding-review` through `[QUESTION_RELAY_REQUEST]`.
+7. **Phase 7: Merging & Release (`@coding-merge`)**:
+   - Coordinates pre-merge documentation tidy-up via `@coding-document`, merges branches, and updates release changelogs and git status tracking.
 
 ---
 
-## 3. Multi-Repository Management (Makefile)
+## 5. Multi-Repository Management (Makefile)
 
 The root repository coordinates all sub-repositories via [`Makefile`](file:///Users/gpfister/Development/Projects/gpfister/agentic/Makefile):
 
@@ -197,11 +339,11 @@ The root repository coordinates all sub-repositories via [`Makefile`](file:///Us
 
 ---
 
-## 4. Obsidian Vault & Session Tracking Protocol
+## 6. Obsidian Vault & Session Tracking Protocol
 
 The `agentic-obsidian/` repository serves as the knowledge base for documentation, architectural decisions, and agent interaction telemetry.
 
-### 3.1 Session Tracking
+### 6.1 Session Tracking
 Antigravity stores session data in `~/.gemini/antigravity-cli/brain/<conversation-id>/`. Every significant session should be recorded into `agentic-obsidian/sessions/<conversation-id>.md`.
 
 Each session note must include:
@@ -230,7 +372,7 @@ Each session note must include:
 4. **Tool Invocations & Reasoning**: Collapsible callouts (`> [!example]- Reasoning Step X` or markdown `<details>`) detailing tool calls and internal chain of thought.
 5. **Artifacts & File Changes**: Copies or links to artifacts created during the session.
 
-### 3.2 Syncing Sessions
+### 6.2 Syncing Sessions
 Use the bundled Python script to parse and export transcripts into the vault:
 
 ```bash
@@ -246,11 +388,11 @@ python3 scripts/sync_sessions.py --all
 
 ---
 
-## 5. Parallel Sessions & Git Worktrees
+## 7. Parallel Sessions & Git Worktrees
 
 To run multiple Antigravity sessions in parallel without branch contention or working directory conflicts, use Git worktrees. Worktrees are isolated under `.worktrees/<session-id>/` and ignored by Git across all repositories.
 
-### 4.1 Worktree Management Script
+### 7.1 Worktree Management Script
 Use `scripts/worktree.py` to create, inspect, and remove parallel session workspaces:
 
 ```bash
@@ -270,14 +412,14 @@ python3 scripts/worktree.py remove <session-id-or-feature> -D
 python3 scripts/worktree.py prune
 ```
 
-### 4.2 Parallel Session Protocol
+### 7.2 Parallel Session Protocol
 1. Each parallel Antigravity session can operate in `.worktrees/<session-id>/...` or on its dedicated session branch (`session/<session-id>-<repo>`).
 2. Vault session logs remain keyed by the unique `<session-id>` in `agentic-obsidian/sessions/<session-id>.md`, preventing collision even when multiple agents write logs simultaneously.
 3. Once a parallel session concludes, changes can be merged back to `master` and the worktree cleanly removed.
 
 ---
 
-## 6. Agent Operational Instructions
+## 8. Agent Operational Instructions
 
 When an Antigravity agent operates in this workspace:
 1. **Identify the Scope**:
