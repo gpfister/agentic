@@ -90,7 +90,7 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 
 ### 2.3 Plugin Ecosystem Catalog
 The workspace currently hosts the following specialized plugins (all subagent handles start with `@coding`):
-- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 7-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-deploy`, `@coding-review`, `@coding-merge`) with clean code reviews, Question Relay and Artifact Approval Relay Protocol inquiry routing, remote PR creation with Question Relay waiting gates and post-merge branch synchronization (`@coding-merge`), and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
+- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), operating as a Dual-Mode Orchestrator (standalone root or delegated subagent) coordinating 7-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-deploy`, `@coding-review`, `@coding-merge`) with clean code reviews, Multi-Hop Question and Artifact Approval Relay Protocol routing, hard anti-direct-coding guardrails (delegating 100% of code/test editing to worker subagents), pre-clarified fast-path routing, remote PR creation with Question Relay waiting gates and post-merge branch synchronization (`@coding-merge`), and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
 - **`agentic-issue-investigation-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@coding-investigate`) with evidence-based verification, interactive approval gates, resolution handoff to `@coding`, and archival via `@coding-document`.
 - **`agentic-project-documenting-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
 - **`agentic-project-grooming-plugin`**: Interactive project initialization, backlog grooming, and scope boundary interrogation plugin (`/project-grooming`), conducting 7-category Matt Pocock grill-me interviews, interactive approval artifact authoring, and cross-plugin repository scaffolding.
@@ -111,12 +111,23 @@ The agentic workspace is designed modularly: users may install only a subset of 
 | **`agentic-coding-plugin`** | `agentic-project-documenting-plugin` installed | Invoke `@coding-document` only after plan approval (Phase 3), before merging (Phase 5), and at the end (Phase 6) to maintain specs, ADRs, and git status. | Skip documentation step and proceed directly to subsequent development phase. |
 | **`agentic-task-monitoring-plugin`** | `agentic-issue-investigation-plugin` installed | For each issue/anomaly discovered, ask user via `ask_question` if they want to invoke `@coding-investigate` to investigate root cause. | Present standard pause gate options (inspect code manually, restart, ignore, abort) without offering `@coding-investigate`. |
 | **`agentic-task-monitoring-plugin`** | `agentic-project-documenting-plugin` installed | At the end of monitoring, invoke `@coding-document` to record monitoring session telemetry and alerts in `agentic-obsidian/monitoring/`. | Output monitoring telemetry summary directly in chat. |
-| **`agentic-issue-investigation-plugin`** | `agentic-coding-plugin` installed | Once `issue-assessment.md` is approved, ask user via `ask_question` if they want to invoke `@coding` to implement the resolution. | Present manual implementation guidance, explaining `@coding` is not available. |
+| **`agentic-issue-investigation-plugin`** | `agentic-coding-plugin` installed | Once `issue-assessment.md` is approved, ask user via `ask_question` if they want to invoke `@coding` to implement the resolution using the standardized orchestration prompt. | Present manual implementation guidance, explaining `@coding` is not available. |
 | **`agentic-issue-investigation-plugin`** | `agentic-project-documenting-plugin` installed | Once issue investigation is done, invoke `@coding-document` to archive `issue-assessment.md` in `agentic-obsidian/investigations/`. | Retain local session artifact `issue-assessment.md`. |
-| **`agentic-project-grooming-plugin`** | `agentic-coding-plugin` installed | Once `Project_Request_Grooming.md` is approved, invoke `@coding` to coordinate multi-stage repo setup, code generation, and test verification. | Directly scaffold repository directories, initialize git, and write starter boilerplate. |
+| **`agentic-project-grooming-plugin`** | `agentic-coding-plugin` installed | Once `Project_Request_Grooming.md` is approved, invoke `@coding` using the standardized orchestration prompt to coordinate multi-stage repo setup, code generation, and test verification. | Directly scaffold repository directories, initialize git, and write starter boilerplate. |
 | **`agentic-project-grooming-plugin`** | `agentic-project-documenting-plugin` installed | Once `Project_Request_Grooming.md` is approved, invoke `@coding-document` to scaffold `<project>-obsidian/` vault and document architecture overview and ADRs. | Directly create baseline Obsidian directory structure and initial README. |
 | **`agentic-topic-researching-plugin`** | `agentic-project-documenting-plugin` installed | Once `research-report.md` is approved, invoke `@coding-document` to record research in `agentic-obsidian/research/`, creating a new topic or updating an existing one. | Present research findings directly in chat. |
 | **`agentic-prompt-triage-plugin`** | Plugin-specific evaluation | Only evaluate and include response choices for installed plugins (`agentic-coding-plugin` -> coding changes; `agentic-issue-investigation-plugin` -> investigations; `agentic-task-monitoring-plugin` -> monitoring; `agentic-project-grooming-plugin` -> project grooming; `agentic-topic-researching-plugin` -> research; `agentic-project-documenting-plugin` -> documentation). | Omit response candidate completely from triage options and Laya evaluation. |
+
+#### 3.1.1 Standardized Upstream Invocation Template
+
+When upstream orchestrators or companion subagents (`@coding-investigate`, `/project-grooming`, or root sessions) invoke `@coding` to implement an approved assessment, plan, or specification, they must use the following standardized prompt template:
+
+```text
+Orchestrate the 7-stage software development lifecycle to implement the following feature / correction based on the approved assessment: <details/path>. Do not implement directly; delegate all phases through worker subagents.
+```
+
+> [!IMPORTANT]
+> The negative constraint clause `Do not implement directly; delegate all phases through worker subagents` reinforces the hard anti-direct-coding boundary, ensuring that `@coding` never alters workspace source code, configurations, or test suites directly, but strictly delegates all implementation work to `@coding-develop`.
 
 ### 3.2 Question Relay Protocol (Subagent User Inquiries)
 
@@ -209,16 +220,23 @@ To ensure consistent enforcement across diverse subagents, agents are categorize
 | Tier | Agents | Operating Protocol | Tooling Permissions |
 | :--- | :--- | :--- | :--- |
 | **Pure Subagents** | `@coding-clarify`<br>`@coding-deploy`<br>`@coding-review`<br>`@coding-merge` | Strictly run under `@coding` orchestrator. **NEVER** call `ask_question`. Always dispatch `[QUESTION_RELAY_REQUEST]` to `caller_id` via `send_message`. | `send_message`<br>(Do not declare `ask_question`) |
-| **Dual-Mode Agents** | `@coding-investigate`<br>`/project-grooming` (`@coding-groom`)<br>`@coding-monitor`<br>`@coding-research` | **Parent Caller Present**: Dispatch `[QUESTION_RELAY_REQUEST]` via `send_message` to caller.<br>**Standalone / Root**: Invoke `ask_question` directly when invoked at the top-level turn. | Both `send_message` and `ask_question` |
+| **Dual-Mode Orchestrators & Agents** | `@coding` (Lifecycle Orchestrator)<br>`@coding-investigate`<br>`/project-grooming` (`@coding-groom`)<br>`@coding-monitor`<br>`@coding-research` | **Parent Caller Present (Subagent Mode)**: Multi-hop relay all worker questions upward to parent caller via `send_message` with `[QUESTION_RELAY_REQUEST]`. **NEVER** call `ask_question`.<br>**Standalone / Root**: Present interactive questions to user via `ask_question` directly when intercepting worker requests or clarifying scope. | Both `send_message` and `ask_question` (Standalone mode only) |
 
 - **Pure Subagents Rules**:
   - Never declare or execute `ask_question`.
   - Package questions into `[QUESTION_RELAY_REQUEST]` and deliver via `send_message`.
   - Enter idle state and await reactive wakeup upon receiving `[QUESTION_RELAY_RESPONSE]`.
-- **Dual-Mode Agents Rules**:
+- **Dual-Mode Orchestrators & Agents Rules**:
   - Dynamically inspect caller context (check if a parent caller ID is provided in session context/metadata).
-  - When invoked by another agent (subagent mode), route all inquiries through `[QUESTION_RELAY_REQUEST]` via `send_message`.
-  - When invoked directly by the user in a top-level session (standalone mode), execute `ask_question` directly without relaying.
+  - **Standalone Mode (caller ID absent)**:
+    - `@coding` operates as the top-level orchestrator: intercepts worker `[QUESTION_RELAY_REQUEST]` envelopes, calls `ask_question` directly in the root turn (without the 60-second runtime timeout), and delivers `[QUESTION_RELAY_RESPONSE]` downward to the requesting worker subagent.
+    - Other dual-mode agents (`@coding-investigate`, `/project-grooming`, `@coding-monitor`, `@coding-research`) invoke `ask_question` directly when prompting the user at the session root.
+  - **Subagent Mode (caller ID present - Multi-Hop Question Relay)**:
+    - When `@coding` is invoked by an upstream agent (`@coding-investigate`, `/project-grooming`, or root orchestrator), `@coding` runs as a subagent under that caller.
+    - `@coding` **NEVER** calls `ask_question` directly (to prevent triggering the 60-second subagent runtime execution timeout).
+    - When a worker subagent (`@coding-clarify`, `@coding-deploy`, `@coding-review`, `@coding-merge`) dispatches `[QUESTION_RELAY_REQUEST]` to `@coding`, `@coding` operates as a **Multi-Hop Relay**: it forwards the `[QUESTION_RELAY_REQUEST]` envelope upward to its own parent caller (`caller_id`) via `send_message` and halts execution, entering an idle state.
+    - When the upstream caller returns `[QUESTION_RELAY_RESPONSE]` to `@coding`, `@coding` is reactively awakened and routes the `[QUESTION_RELAY_RESPONSE]` downward to the waiting subagent (`subagent_id`) via `send_message`.
+    - Other dual-mode agents package inquiries into `[QUESTION_RELAY_REQUEST]` and dispatch them upward to caller via `send_message`.
 
 ### 3.3 Artifact Approval Relay Protocol (Subagent Artifact Gates)
 
@@ -319,16 +337,23 @@ Dispatched by the parent orchestrator back to the worker subagent (`subagent_id`
 | Tier | Agents | Artifacts Produced | Operating Protocol | Tooling & Artifact Gate Permissions |
 | :--- | :--- | :--- | :--- | :--- |
 | **Pure Subagents** | `@coding-specify`<br>`@coding-plan`<br>`@coding-deploy` | `specification.md`<br>`plan.md`<br>`deployment-issue.md` | Strictly run under `@coding` orchestrator. **NEVER** write artifacts with `RequestFeedback=True`. Always write to disk without feedback gate and dispatch `[ARTIFACT_APPROVAL_REQUEST]` to `caller_id` via `send_message`. | `write_file` (without `RequestFeedback=True`), `send_message` |
-| **Dual-Mode Agents** | `@coding-investigate`<br>`/project-grooming` (`@coding-groom`)<br>`@coding-research` | `issue-assessment.md`<br>`Project_Request_Grooming.md`<br>`research-report.md` | **Parent Caller Present**: Write artifact to disk without `RequestFeedback=True`, dispatch `[ARTIFACT_APPROVAL_REQUEST]` via `send_message` to caller.<br>**Standalone / Root**: Author artifact directly using `write_file` with `ArtifactMetadata={"RequestFeedback": True, "UserFacing": True}` as the sole & final tool call of the turn. | `write_file` (with or without `RequestFeedback`), `send_message` |
+| **Dual-Mode Orchestrators & Agents** | `@coding` (Lifecycle Orchestrator)<br>`@coding-investigate`<br>`/project-grooming` (`@coding-groom`)<br>`@coding-research` | Relayed artifacts (`specification.md`, `plan.md`, `deployment-issue.md`)<br>`issue-assessment.md`<br>`Project_Request_Grooming.md`<br>`research-report.md` | **Parent Caller Present (Subagent Mode)**: Multi-hop relay received `[ARTIFACT_APPROVAL_REQUEST]` upward to parent caller via `send_message`. **NEVER** call `write_file(RequestFeedback=True)`. Forward `[ARTIFACT_APPROVAL_RESPONSE]` downward.<br>**Standalone / Root**: Present interactive gates using `write_file` with `ArtifactMetadata={"RequestFeedback": True, "UserFacing": True}` as the sole & final tool call of the turn. | `write_file` (Standalone mode only for approval gates; strictly prohibited in Subagent mode), `send_message` |
 
 - **Pure Subagents Rules**:
   - Never call `write_file` with `ArtifactMetadata={"RequestFeedback": True, ...}`.
   - Package artifact approval requests into `[ARTIFACT_APPROVAL_REQUEST]` and deliver via `send_message`.
   - Enter idle state and await reactive wakeup upon receiving `[ARTIFACT_APPROVAL_RESPONSE]`.
-- **Dual-Mode Agents Rules**:
+- **Dual-Mode Orchestrators & Agents Rules**:
   - Dynamically inspect caller context (check if a parent caller ID is provided in session context/metadata).
-  - When invoked by another agent (subagent mode), write artifact without feedback gate and route approval through `[ARTIFACT_APPROVAL_REQUEST]` via `send_message`.
-  - When invoked directly by the user in a top-level session (standalone mode), execute `write_file` with `ArtifactMetadata={"RequestFeedback": True, "UserFacing": True}` directly as the sole and final tool call of the turn.
+  - **Standalone Mode (caller ID absent)**:
+    - `@coding` acts as the root presentation handler: intercepts `[ARTIFACT_APPROVAL_REQUEST]` from worker subagents, reads the artifact from disk, and calls `write_file(Path=artifact_path, Content=..., Overwrite=True, ArtifactMetadata={"RequestFeedback": True, "UserFacing": True, "Summary": summary})` as the **sole and final tool call** of that turn.
+    - Captures user review decision and dispatches `[ARTIFACT_APPROVAL_RESPONSE]` downward to the waiting subagent.
+    - Other dual-mode agents author their artifact directly using `write_file` with `ArtifactMetadata={"RequestFeedback": True, "UserFacing": True}` as the sole and final tool call of the turn.
+  - **Subagent Mode (caller ID present - Multi-Hop Artifact Relay)**:
+    - When `@coding` has a parent caller, `@coding` **NEVER** calls `write_file` with `RequestFeedback=True` (to prevent triggering the 60-second subagent runtime execution timeout).
+    - When a worker subagent (`@coding-specify`, `@coding-plan`, `@coding-deploy`) dispatches `[ARTIFACT_APPROVAL_REQUEST]` to `@coding`, `@coding` operates as a **Multi-Hop Relay**: it forwards the `[ARTIFACT_APPROVAL_REQUEST]` envelope upward to its own parent caller (`caller_id`) via `send_message` and halts execution, entering an idle state.
+    - When the upstream caller returns `[ARTIFACT_APPROVAL_RESPONSE]` to `@coding`, `@coding` is reactively awakened and routes the `[ARTIFACT_APPROVAL_RESPONSE]` downward to the waiting subagent (`subagent_id`) via `send_message`.
+    - Other dual-mode agents write artifacts to disk without feedback metadata and dispatch `[ARTIFACT_APPROVAL_REQUEST]` upward to caller via `send_message`.
 
 ---
 
