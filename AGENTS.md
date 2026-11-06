@@ -554,7 +554,7 @@ python3 scripts/worktree.py prune
 ### 7.2 Parallel Session Protocol
 1. Each parallel Antigravity session can operate in `.worktrees/<session-id>/...` or on its dedicated session branch (`session/<session-id>-<repo>`).
 2. Vault session logs remain keyed by the unique `<session-id>` in `agentic-obsidian/sessions/<session-id>.md`, preventing collision even when multiple agents write logs simultaneously.
-3. Once a parallel session concludes, changes can be merged back to `master` and the worktree cleanly removed.
+3. Once a parallel session concludes, changes can be merged back to `main` and the worktree cleanly removed.
 
 ---
 
