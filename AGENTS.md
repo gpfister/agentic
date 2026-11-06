@@ -90,7 +90,7 @@ All plugins within this ecosystem must adhere to the Antigravity Customization S
 
 ### 2.3 Plugin Ecosystem Catalog
 The workspace currently hosts the following specialized plugins (all subagent handles start with `@coding`):
-- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 7-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-deploy`, `@coding-review`, `@coding-merge`) with clean code reviews, Question Relay and Artifact Approval Relay Protocol inquiry routing, and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
+- **`agentic-coding-plugin`**: Structured full-lifecycle software development companion (`@coding`), coordinating 7-stage delivery workflows (`@coding-clarify`, `@coding-specify`, `@coding-plan`, `@coding-develop`, `@coding-deploy`, `@coding-review`, `@coding-merge`) with clean code reviews, Question Relay and Artifact Approval Relay Protocol inquiry routing, remote PR creation with Question Relay waiting gates and post-merge branch synchronization (`@coding-merge`), and documentation maintenance via `@coding-document` (after plan approval, before merging, and at the end of the lifecycle).
 - **`agentic-issue-investigation-plugin`**: Autonomous multi-repository issue investigation and root-cause diagnosis subagent (`@coding-investigate`) with evidence-based verification, interactive approval gates, resolution handoff to `@coding`, and archival via `@coding-document`.
 - **`agentic-project-documenting-plugin`**: Centralized documentation and knowledge curation companion (`@coding-document`), maintaining Obsidian vaults across projects, features, architecture designs, ADRs, session transcripts, artifacts, code changes, and git statuses.
 - **`agentic-project-grooming-plugin`**: Interactive project initialization, backlog grooming, and scope boundary interrogation plugin (`/project-grooming`), conducting 7-category Matt Pocock grill-me interviews, interactive approval artifact authoring, and cross-plugin repository scaffolding.
@@ -208,7 +208,7 @@ To ensure consistent enforcement across diverse subagents, agents are categorize
 
 | Tier | Agents | Operating Protocol | Tooling Permissions |
 | :--- | :--- | :--- | :--- |
-| **Pure Subagents** | `@coding-clarify`<br>`@coding-deploy`<br>`@coding-review` | Strictly run under `@coding` orchestrator. **NEVER** call `ask_question`. Always dispatch `[QUESTION_RELAY_REQUEST]` to `caller_id` via `send_message`. | `send_message`<br>(Do not declare `ask_question`) |
+| **Pure Subagents** | `@coding-clarify`<br>`@coding-deploy`<br>`@coding-review`<br>`@coding-merge` | Strictly run under `@coding` orchestrator. **NEVER** call `ask_question`. Always dispatch `[QUESTION_RELAY_REQUEST]` to `caller_id` via `send_message`. | `send_message`<br>(Do not declare `ask_question`) |
 | **Dual-Mode Agents** | `@coding-investigate`<br>`/project-grooming` (`@coding-groom`)<br>`@coding-monitor`<br>`@coding-research` | **Parent Caller Present**: Dispatch `[QUESTION_RELAY_REQUEST]` via `send_message` to caller.<br>**Standalone / Root**: Invoke `ask_question` directly when invoked at the top-level turn. | Both `send_message` and `ask_question` |
 
 - **Pure Subagents Rules**:
@@ -393,7 +393,7 @@ flowchart TD
     InvokeDocPreMerge --> P7Merge
 
     %% Phase 7: Release & Merge
-    P7Merge --> ExecMerge["Wait for all develop & deploy<br/>Execute git merge or open GitHub PR"]
+    P7Merge --> ExecMerge["Execute local merge or remote PR creation<br/>Relay PR waiting gate via [QUESTION_RELAY_REQUEST]<br/>Sync base branch & delete local feature branch"]
     ExecMerge --> DocPostMergeCheck{"agentic-project-documenting-plugin<br/>installed?"}
     DocPostMergeCheck -->|"Yes"| InvokeDocPostMerge["Invoke @coding-document<br/>(Post-merge: update git status, branch tracking & changelogs)"]
     DocPostMergeCheck -->|"No"| Complete(["Workflow Completed"])
@@ -429,7 +429,10 @@ flowchart TD
    - Audits deliverables against specification, verifies code quality, test suite execution, and local deployment health.
    - **Question Relay Interaction**: Merge confirmation is prompted either directly by `@coding` via `ask_question` or relayed by `@coding-review` through `[QUESTION_RELAY_REQUEST]`.
 7. **Phase 7: Merging & Release (`@coding-merge`)**:
-   - Coordinates pre-merge documentation tidy-up via `@coding-document`, merges branches, and updates release changelogs and git status tracking.
+   - Detects repository remote configuration (`git remote -v`). For local-only repositories, merges feature branches directly into the base branch (`git checkout <base>`, `git merge`).
+   - For remote repositories, pushes the feature branch (`git push -u origin <branch>`), checks GitHub CLI authentication (`gh auth status`), and creates a PR via `gh pr create` (or generates a fallback compare URL if unauthenticated/missing).
+   - **Question Relay PR Waiting Gate**: Inspects PR status via `gh pr view`. If still open, never blocks or polls synchronously; instead, dispatches a `[QUESTION_RELAY_REQUEST]` to `@coding` offering choices: re-check PR status, enable GitHub auto-merge (`gh pr merge --auto --merge`), or proceed without waiting.
+   - **Post-Merge Workspace Synchronization**: Once merged, checks out the base branch (`git checkout <base>`), fast-forward pulls latest remote changes (`git pull --ff-only origin <base>`), safely deletes the local feature branch (`git branch -d <branch>`), and updates release changelogs and git status tracking via `@coding-document`.
 
 ---
 
