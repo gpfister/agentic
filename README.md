@@ -6,7 +6,7 @@ Workspace coordinator for developing and maintaining **Google Antigravity** plug
 
 | Project | Type | Description |
 | :--- | :--- | :--- |
-| **`agentic-coding-plugin/`** | Antigravity Plugin | Structured 7-stage software development companion (`@coding`), operating as a Dual-Mode Orchestrator with Multi-Hop Relay, Anti-Direct-Coding Guardrails, clean code reviews, local deployment verification, and after-each-phase documentation maintenance. |
+| **`agentic-coding-plugin/`** | Antigravity Plugin | Structured 7-stage software development companion (`@coding`), operating as a Dual-Mode Orchestrator with Multi-Hop Relay, Anti-Direct-Coding Guardrails, clean code reviews, local deployment verification, complete post-merge branch cleanup and remote tracking pruning, and after-each-phase documentation maintenance. |
 | **`agentic-issue-investigation-plugin/`** | Antigravity Plugin | Autonomous multi-repository issue investigation and root cause diagnosis plugin (`@coding-investigate`). |
 | **`agentic-obsidian/`** | Obsidian Vault | Centralized documentation hub containing session transcripts, architecture guidelines, and plugin docs. |
 | **`agentic-project-documenting-plugin/`** | Antigravity Plugin | Autonomous documentation and knowledge curation companion (`@coding-document`) for Obsidian vaults. |
@@ -103,3 +103,10 @@ To resolve duplicate UI approval gates and protect against workflow bypass durin
 1. **Dual-Mode Orchestration**: When `@coding` detects an upstream caller (`caller_id` present), it operates in **Subagent Mode**, multi-hop relaying all approval requests (`[ARTIFACT_APPROVAL_REQUEST]`) and user inquiries (`[QUESTION_RELAY_REQUEST]`) upward without rendering local gates or asking questions directly. In **Standalone Mode** (no `caller_id`), `@coding` directly handles gates and questions.
 2. **Hard Anti-Direct-Coding Guardrails**: `@coding` is strictly a meta-orchestrator and **MUST NEVER** edit application source code, configs, or test suites directly. `write_file` is restricted to approval gate rendering in standalone mode; `run_command` is restricted to workspace inspection (`git status`). All implementation is delegated to `@coding-develop`.
 3. **Pre-Clarified Fast-Path**: Skips Phase 1 (`coding-clarify`) for pre-clarified requirements while strictly enforcing Phase 2 and Phase 3 approval gates before code development begins.
+
+### Complete Branch Cleanup & Remote Tracking Prune (`@coding-merge`)
+
+To eliminate stale local/remote feature branches and dangling remote-tracking references across the workspace (formalized in [ADR-009](file:///Users/gpfister/Development/Projects/gpfister/agentic/agentic-obsidian/architecture/adr-009-coding-merge-complete-branch-cleanup-and-remote-sync.md)):
+1. **Working Tree Base Assurance**: `@coding-merge` verifies working tree checkout on the primary base branch (`main` or `master`) across all release paths.
+2. **Local Release Strategy**: When no remote is configured, checks out base branch, merges feature branch, verifies checkout (`git branch --show-current`), and safely deletes the local feature branch (`git branch -d <branch>`), reporting `cleanup: true`.
+3. **Remote Release Strategy**: Pushes feature branch, opens GitHub PR with Question Relay waiting gate, and upon PR merge confirmation, switches to base branch (`git checkout <base>`), fast-forwards base branch (`git pull --ff-only origin <base>`), deletes remote feature branch (`git push origin --delete <branch>`), safely deletes local feature branch (`git branch -d <branch>`), and prunes stale remote tracking references (`git fetch --prune origin`).
