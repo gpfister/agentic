@@ -34,6 +34,7 @@ log/
 
 # Sub-repositories
 /agentic-coding-plugin/
+/agentic-design-plugin/
 /agentic-issue-investigation-plugin/
 /agentic-obsidian/
 /agentic-project-documenting-plugin/
